@@ -14,9 +14,9 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:     "Invoicer",
-		Width:     1024,
-		MinWidth:  1024,
+		Title: "Invoicer",
+		Width: 1024,
+		// MinWidth:  1024,
 		Height:    768,
 		MinHeight: 768,
 		AssetServer: &assetserver.Options{

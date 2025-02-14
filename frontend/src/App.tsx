@@ -16,7 +16,7 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <div className="flex bg-cbg dark:bg-cbg-dark text-gf dark:text-gf-dark">
+      <div className="flex bg-cbg dark:bg-cbg-dark font-mono text-gray-600 dark:text-gf-dark">
         <Navbar />
         <main className="bg-cbg dark:bg-cbg-dark flex-1 ml-64 overflow-y-auto h-screen p-4">
           <Routes>
