@@ -17,8 +17,8 @@ func main() {
 		Title: "Invoicer",
 		Width: 1024,
 		// MinWidth:  1024,
-		Height:    768,
-		MinHeight: 768,
+		Height:    788,
+		MinHeight: 788,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

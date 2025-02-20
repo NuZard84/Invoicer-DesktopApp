@@ -1,15 +1,18 @@
+// Navbar.tsx
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   House,
+  ReceiptText,
   LayoutTemplate,
   Plus,
-  ReceiptText,
   Moon,
   Sun,
 } from "lucide-react";
 
 const Navbar: React.FC = () => {
+  // Dark Mode State
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
@@ -28,15 +31,36 @@ const Navbar: React.FC = () => {
     setIsDarkMode((prev) => !prev);
   };
 
-  const nav_links = [
-    { to: "/", text: "Dashboard", icon: <House size={20} /> },
-    { to: "/billings", text: "Billings", icon: <ReceiptText size={20} /> },
+  const companies = [
+    { name: "DHANCHHA" },
+    { name: "RACHANA" },
+    { name: "MITAL" },
+  ];
+
+  const subRoutes = [
     {
-      to: "/template",
-      text: "Change Template",
-      icon: <LayoutTemplate size={20} />,
+      label: "New Invoice",
+      path: "new-template",
+      icon: <Plus size={18} />,
+    },
+    {
+      label: "Billings",
+      path: "billings",
+      icon: <ReceiptText size={18} />,
+    },
+
+    {
+      label: "Template",
+      path: "template",
+      icon: <House size={18} />,
     },
   ];
+
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const handleToggle = (index: number) => {
+    setExpandedIndex((prev) => (prev === index ? null : index));
+  };
 
   return (
     <nav className="fixed w-64 h-screen bg-bg dark:bg-bg-dark text-gf dark:text-gf-dark p-4 shadow-md">
@@ -50,36 +74,71 @@ const Navbar: React.FC = () => {
         </button>
       </div>
 
-      <NavLink
-        to={"/new-template"}
-        className="flex mb-6 bg-dp p-2 text-white rounded-lg items-center justify-center gap-2 flex-row 
-        hover:bg-lp dark:hover:bg-lp-dark hover:text-dp cursor-pointer transition-all duration-200 border-[1px] border-white dark:border-gray-700 dark:hover:border-dp"
-      >
-        <span>
-          <Plus size={18} />
-        </span>
-        New Invoice
-      </NavLink>
-
       <ul className="space-y-4">
-        {nav_links.map((link, i) => (
-          <li key={i}>
-            <NavLink
-              to={link.to}
-              className={({ isActive }) =>
-                `transition-all duration-200 flex-row gap-2 flex p-2 rounded-lg items-center 
-                ${
-                  isActive
-                    ? "bg-lp text-dp dark:bg-gray-600 dark:text-white"
-                    : "hover:bg-dp hover:text-bg dark:hover:bg-gray-700 dark:hover:text-white"
-                }`
-              }
-            >
-              <span>{link.icon}</span>
-              {link.text}
-            </NavLink>
-          </li>
-        ))}
+        {companies.map((company, index) => {
+          const isOpen = expandedIndex === index;
+          return (
+            <li key={company.name}>
+              <div
+                onClick={() => handleToggle(index)}
+                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer
+                  transition-all duration-200
+                  ${
+                    isOpen
+                      ? "bg-lp text-dp dark:bg-gray-600 dark:text-white"
+                      : "hover:bg-dp hover:text-white dark:hover:bg-gray-700"
+                  }
+                `}
+              >
+                <span className="font-semibold">{company.name}</span>
+
+                <motion.div
+                  animate={{ rotate: isOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  ▼
+                </motion.div>
+              </div>
+
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.ul
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden ml-4 mt-2 flex flex-col space-y-2"
+                  >
+                    {subRoutes.map((route) => {
+                      const fullPath = `/${company.name.toLowerCase()}/${
+                        route.path
+                      }`;
+                      return (
+                        <li key={route.label}>
+                          <NavLink
+                            to={fullPath}
+                            className={({ isActive }) =>
+                              `flex items-center gap-2 p-2 rounded-lg
+                              transition-all duration-200
+                              ${
+                                isActive
+                                  ? "bg-lp text-dp dark:bg-gray-600 dark:text-white"
+                                  : "hover:bg-dp hover:text-white dark:hover:bg-gray-700"
+                              }`
+                            }
+                          >
+                            {route.icon}
+                            <span>{route.label}</span>
+                          </NavLink>
+                        </li>
+                      );
+                    })}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

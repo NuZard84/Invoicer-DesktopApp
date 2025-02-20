@@ -1,18 +1,21 @@
+// App.jsx
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Dashboard from "./components/Dashboard";
 import Navbar from "./Layout/Navbar";
-import { Fragment } from "react/jsx-runtime";
-import Billings from "./components/Billings";
-import Templates from "./components/Templates";
-import NewInvoice from "./components/NewInvoice";
 
-export function App() {
-  const routes = [
-    { path: "/", comp: <Dashboard /> },
-    { path: "/billings", comp: <Billings /> },
-    { path: "/template", comp: <Templates /> },
-    { path: "/new-template", comp: <NewInvoice /> },
-  ];
+import Dashboard from "./components/Dashboard";
+import Billings from "./components/Billings";
+
+import NewInvoice from "./components/NewInvoice";
+import Template from "./components/Template";
+
+export default function App() {
+  useEffect(() => {
+    const stored = localStorage.getItem("userTemplateData");
+    const parsed = stored ? JSON.parse(stored) : [];
+
+    console.log("localStorage--->", parsed);
+  }, []);
 
   return (
     <BrowserRouter>
@@ -20,11 +23,13 @@ export function App() {
         <Navbar />
         <main className="bg-cbg dark:bg-cbg-dark flex-1 ml-64 overflow-y-auto h-screen p-4">
           <Routes>
-            {routes.map((route, i) => (
-              <Fragment key={i}>
-                <Route path={route.path} element={route.comp} />
-              </Fragment>
-            ))}
+            {/* Root route for main dashboard */}
+            <Route path="/" element={<Dashboard />} />
+
+            {/* Dynamic routes: /:company/... */}
+            <Route path="/:company/new-template" element={<NewInvoice />} />
+            <Route path="/:company/billings" element={<Billings />} />
+            <Route path="/:company/template" element={<Template />} />
           </Routes>
         </main>
       </div>
