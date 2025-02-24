@@ -22,28 +22,27 @@ const Template: React.FC = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [isTemplateFilled, setIsTemplateFilled] = useState(false);
 
-  // Load any existing company data from localStorage
   useEffect(() => {
     if (!company) return;
     const stored = localStorage.getItem("userTemplateData");
     const parsed = stored ? JSON.parse(stored) : [];
 
-    const foundIndex = parsed.findIndex((item: any) => item[company]);
+    const foundIndex = parsed.findIndex(
+      (item: any) => item.companyName === company
+    );
     if (foundIndex !== -1) {
-      const data = parsed[foundIndex][company];
+      const data = parsed[foundIndex];
       setFormData(data);
       setIsTemplateFilled(!!data.isTemplateFilled);
       if (data.companyLogo) setFileName("Logo Selected");
     }
   }, [company]);
 
-  // Handle text input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  // Handle logo file
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
@@ -60,7 +59,6 @@ const Template: React.FC = () => {
     };
   };
 
-  // Save info to localStorage
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!company) return;
@@ -88,7 +86,6 @@ const Template: React.FC = () => {
     alert("Template information saved successfully!");
   };
 
-  // Reset info in localStorage
   const handleReset = () => {
     if (!company) return;
     const stored = localStorage.getItem("userTemplateData");
@@ -264,18 +261,43 @@ const Template: React.FC = () => {
             />
           </div>
           <div className="gap-2 flex flex-col">
-            <label htmlFor="transactionType" className="font-medium">
-              Transaction Type:
-            </label>
-            <input
-              id="transactionType"
-              type="text"
-              placeholder="Enter transaction type"
-              required
-              value={formData.transactionType}
-              onChange={handleInputChange}
-              className="dark:bg-slate-600 bg-white rounded-md w-[65%] pl-2 py-1 border dark:border-0"
-            />
+            <label className="font-medium">Transaction Type:</label>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center w-[65%] rounded-lg overflow-hidden border dark:border-slate-600">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      transactionType: "online",
+                    }))
+                  }
+                  className={`flex-1 py-2 px-4 text-center transition-colors border-r dark:border-slate-600 ${
+                    formData.transactionType === "online"
+                      ? "bg-dp dark:bg-mp-dark text-white border-2 border-dp dark:border-mp-dark"
+                      : "bg-white dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  Online
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      transactionType: "cheque",
+                    }))
+                  }
+                  className={`flex-1 py-2 px-4 text-center transition-colors ${
+                    formData.transactionType === "cheque"
+                      ? "bg-dp dark:bg-mp-dark text-white border-2 border-dp dark:border-mp-dark"
+                      : "bg-white dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  Cheque
+                </button>
+              </div>
+            </div>
           </div>
           <div className="gap-2 flex flex-col">
             <label htmlFor="panNo" className="font-medium">

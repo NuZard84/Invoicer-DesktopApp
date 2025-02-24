@@ -51,28 +51,53 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   sidebar: {
-    width: "30%",
-    backgroundColor: "#f5f5f5",
+    width: "33%",
+    height: "100%",
+    backgroundColor: "rgba(230, 230, 230, 1)",
     padding: 20,
+    paddingLeft: 25,
   },
   mainContent: {
     width: "70%",
-    padding: "20px 30px",
+    padding: "20px 10px",
   },
   logo: {
-    width: 120,
+    width: 170,
     objectFit: "contain",
-    marginBottom: 15,
+    marginBottom: 8,
   },
   companyName: {
     fontSize: 14,
     marginBottom: 5,
   },
-  sidebarSection: {
-    marginVertical: 20,
-    borderBottom: "1px solid #e0e0e0",
-    paddingVertical: 20,
+
+  sidebarSectionInvoiceDetails: {
+    marginVertical: 10,
+    paddingLeft: 6,
+    paddingTop: 20,
   },
+  sidebarSectionCompanyPAN: {
+    paddingVertical: 20,
+
+    marginTop: 20,
+    paddingLeft: 6,
+  },
+  sidebarSectionBankDetails: {
+    paddingVertical: 20,
+
+    paddingLeft: 6,
+  },
+  sidebarSectionEmail: {
+    paddingVertical: 20,
+
+    paddingLeft: 6,
+  },
+  sidebarSectionAddress: {
+    paddingVertical: 15,
+
+    paddingLeft: 6,
+  },
+
   sidebarLabel: {
     color: "#666",
     marginTop: 6,
@@ -80,6 +105,7 @@ const styles = StyleSheet.create({
   sidebarValue: {
     fontSize: 10,
     marginVertical: 2,
+    marginBottom: 2,
   },
   invoiceTitle: {
     fontSize: 24,
@@ -87,13 +113,18 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   clientSection: {
-    marginBottom: 40,
+    height: 135,
+    marginTop: 20,
+
+    display: "flex",
+    justifyContent: "center",
   },
   table: {
     width: "100%",
+    marginTop: 2,
   },
   tableHeader: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "rgba(244, 244, 244, 1)",
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
@@ -127,8 +158,8 @@ const styles = StyleSheet.create({
   },
   signature: {
     position: "absolute",
-    bottom: 100,
-    right: 20,
+    bottom: 40,
+    right: 35,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -141,23 +172,133 @@ const styles = StyleSheet.create({
 });
 
 function convertNumberToWords(amount: number): string {
-  return "Twenty Five Thousand Rupees";
+  const ones = [
+    "",
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+    "Twelve",
+    "Thirteen",
+    "Fourteen",
+    "Fifteen",
+    "Sixteen",
+    "Seventeen",
+    "Eighteen",
+    "Nineteen",
+  ];
+  const tens = [
+    "",
+    "",
+    "Twenty",
+    "Thirty",
+    "Forty",
+    "Fifty",
+    "Sixty",
+    "Seventy",
+    "Eighty",
+    "Ninety",
+  ];
+
+  function getWords(num: number): string {
+    if (num < 20) return ones[num];
+    if (num < 100)
+      return (
+        tens[Math.floor(num / 10)] +
+        (num % 10 !== 0 ? " " + ones[num % 10] : "")
+      );
+    if (num < 1000)
+      return (
+        ones[Math.floor(num / 100)] +
+        " Hundred" +
+        (num % 100 !== 0 ? " and " + getWords(num % 100) : "")
+      );
+    if (num < 100000)
+      return (
+        getWords(Math.floor(num / 1000)) +
+        " Thousand" +
+        (num % 1000 !== 0 ? " " + getWords(num % 1000) : "")
+      );
+    if (num < 10000000)
+      return (
+        getWords(Math.floor(num / 100000)) +
+        " Lakh" +
+        (num % 100000 !== 0 ? " " + getWords(num % 100000) : "")
+      );
+    return (
+      getWords(Math.floor(num / 10000000)) +
+      " Crore" +
+      (num % 10000000 !== 0 ? " " + getWords(num % 10000000) : "")
+    );
+  }
+
+  const integerPart = Math.floor(amount);
+  const decimalPart = Math.round((amount - integerPart) * 100);
+
+  let words = getWords(integerPart) + " Rupees";
+  if (decimalPart > 0) {
+    words += " and " + getWords(decimalPart) + " Paise";
+  }
+
+  return words + " Only";
 }
 
-const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
+export const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Sidebar Section */}
         <View style={styles.sidebar}>
-          {companyData.companyLogo && (
-            <Image style={styles.logo} src={companyData.companyLogo} />
-          )}
+          {/* Logo and Main Title */}
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {companyData.companyLogo && (
+              <Image style={styles.logo} src={companyData.companyLogo} />
+            )}
+            <Text
+              style={{
+                textAlign: "center",
+                fontSize: 18,
+                fontWeight: "700",
+                fontFamily: "Helvetica",
+              }}
+            >
+              Nikhil B Fultariya
+            </Text>
+          </View>
 
-          {/* Invoice Details */}
-          <View style={styles.sidebarSection}>
+          {/* Horizontal line */}
+          <View
+            style={{
+              position: "absolute",
+              top: "10%",
+              backgroundColor: "rgba(0,0,0,0.5)",
+              height: 0.7,
+              width: "293.5%",
+
+              marginVertical: 16,
+            }}
+          />
+
+          {/* Invoice Details Section */}
+          <View style={styles.sidebarSectionInvoiceDetails}>
             <Text style={styles.sidebarLabel}>Invoice No.</Text>
-            <Text style={styles.sidebarValue}>{formData.invoiceNo}</Text>
+            <Text style={styles.sidebarValue}>
+              {formData.invoiceNo ? formData.invoiceNo : 1111}
+            </Text>
 
             <Text style={styles.sidebarLabel}>Invoice Date</Text>
             <Text style={styles.sidebarValue}>{formData.invoiceDate}</Text>
@@ -168,15 +309,36 @@ const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
             </Text>
           </View>
 
-          {/* Company PAN */}
-          <View style={styles.sidebarSection}>
+          {/* Horizontal line */}
+          <View
+            style={{
+              position: "absolute",
+              top: "28.75%",
+              backgroundColor: "rgba(0,0,0,0.5)",
+              height: 0.7,
+              width: "293.5%",
+            }}
+          />
+
+          {/* Company PAN Section */}
+          <View style={styles.sidebarSectionCompanyPAN}>
             <Text style={styles.sidebarLabel}>PAN No.</Text>
             <Text style={styles.sidebarValue}>{companyData.panNo}</Text>
           </View>
 
+          {/* Horizontal line */}
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              height: 0.7,
+              width: "100%",
+            }}
+          />
+
           {/* Bank Details */}
-          <View style={styles.sidebarSection}>
+          <View style={styles.sidebarSectionBankDetails}>
             <Text style={styles.sidebarLabel}>Bank Details</Text>
+            <Text style={styles.sidebarValue}>{companyData.name}</Text>
             <Text style={styles.sidebarValue}>{companyData.bankName}</Text>
             <Text style={styles.sidebarValue}>
               A/c No: {companyData.accountNo}
@@ -184,14 +346,43 @@ const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
             <Text style={styles.sidebarValue}>IFSC: {companyData.ifsc}</Text>
           </View>
 
+          {/* Horizontal line */}
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              height: 0.7,
+              width: "100%",
+            }}
+          />
+
           {/* Email */}
-          <View style={styles.sidebarSection}>
+          <View style={styles.sidebarSectionEmail}>
             <Text style={styles.sidebarLabel}>Email</Text>
             <Text style={styles.sidebarValue}>{companyData.email}</Text>
+            <Text style={styles.sidebarLabel}>Website</Text>
+            <Text style={styles.sidebarValue}>www.dhancha.com</Text>
           </View>
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              height: 0.7,
+              width: "100%",
+            }}
+          />
+          {/* Horizontal line */}
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              height: 0.7,
+              width: "293.5%",
+
+              position: "absolute",
+              top: "75.7%",
+            }}
+          />
 
           {/* Company Address */}
-          <View style={styles.sidebarSection}>
+          <View style={styles.sidebarSectionAddress}>
             <Text style={styles.sidebarLabel}>Address</Text>
             {companyData.companyAddress.split(",").map((line, index) => (
               <Text key={index} style={styles.sidebarValue}>
@@ -208,9 +399,7 @@ const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
           {/* Client Details */}
           <View style={styles.clientSection}>
             <Text style={styles.companyName}>{formData.customerName}</Text>
-            {formData.customerAddress.split(",").map((line, index) => (
-              <Text key={index}>{line.trim()}</Text>
-            ))}
+            <Text style={styles.sidebarValue}>{formData.customerAddress}</Text>
           </View>
 
           {/* Items Table */}
@@ -234,10 +423,11 @@ const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
           <View
             style={{
               justifyContent: "space-between",
-              width: "100%",
+              width: "94.5%",
               display: "flex",
               flexDirection: "row",
-              marginTop: 10,
+              position: "absolute",
+              top: "76.5%",
             }}
           >
             <View style={styles.total}>
@@ -249,16 +439,19 @@ const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
                     0
                   )
                 )}{" "}
-                Only
               </Text>
             </View>
             <View
               style={{
-                textAlign: "right",
+                // textAlign: "right",
                 marginRight: 8,
               }}
             >
-              <Text>
+              <Text
+                style={{
+                  fontFamily: "Helvetica-Bold",
+                }}
+              >
                 {formData.items
                   .reduce(
                     (sum, item) => sum + (parseFloat(item.amount) || 0),
@@ -280,7 +473,10 @@ const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
   );
 };
 
-export default function DhanchaPDF({ formData, companyData }: DefaultPDFProps) {
+export default function DhanchhaPDF({
+  formData,
+  companyData,
+}: DefaultPDFProps) {
   if (!formData || !companyData) {
     return null;
   }
@@ -291,23 +487,6 @@ export default function DhanchaPDF({ formData, companyData }: DefaultPDFProps) {
         <PDFViewer width="100%" height="100%">
           <InvoicePDF formData={formData} companyData={companyData} />
         </PDFViewer>
-      </div>
-      <div className="mt-6 flex justify-center">
-        <PDFDownloadLink
-          document={
-            <InvoicePDF formData={formData} companyData={companyData} />
-          }
-          fileName="invoice.pdf"
-        >
-          {({ loading }) => (
-            <button
-              className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300"
-              disabled={loading}
-            >
-              {loading ? "Loading document..." : "Download PDF"}
-            </button>
-          )}
-        </PDFDownloadLink>
       </div>
     </div>
   );

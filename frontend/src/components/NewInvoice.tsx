@@ -3,6 +3,11 @@ import { useParams } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import DefaultPDF from "./Templates/DefualtPDF";
 import DhanchhaPDF from "./Templates/DhanchhaPDF";
+import { InvoicePDF as DhanchhaPDFDoc } from "./Templates/DhanchhaPDF";
+import { InvoicePDF as DefaultPDFDoc } from "./Templates/DefualtPDF";
+import { pdf } from "@react-pdf/renderer";
+// Import the backend functions from your Wails bindings
+import { SaveInvoicePDF, AddInvoice } from "../../wailsjs/go/main/App";
 
 export interface CompanyInfo {
   name: string;
@@ -10,7 +15,6 @@ export interface CompanyInfo {
   companyAddress: string;
   gstNo: string;
   companyLogo: string | null;
-  // New fields
   invoiceNo: string;
   invoiceDate: string;
   transactionType: string;
@@ -34,7 +38,7 @@ export interface FormDataType {
 }
 
 const NewInvoice: React.FC = () => {
-  const { company } = useParams<{ company: string }>();
+  const { company } = useParams<{ company: string | undefined }>();
 
   const [formData, setFormData] = useState<FormDataType>({
     invoiceNo: "",
@@ -51,14 +55,10 @@ const NewInvoice: React.FC = () => {
     const stored = localStorage.getItem("userTemplateData");
     if (stored) {
       try {
-        console.log("trying to get load local storage");
         const parsedData: CompanyInfo[] = JSON.parse(stored);
-        console.log("parsed Data", parsedData);
         const foundData = parsedData.find(
-          (item) => item.companyName === company
+          (item) => item.companyName.toLowerCase() === company.toLowerCase()
         );
-        console.log(" load local storage", foundData);
-
         if (foundData) {
           setCompanyData(foundData);
         }
@@ -102,6 +102,12 @@ const NewInvoice: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    if (!company) {
+      alert("Company information is missing.");
+      return;
+    }
+
     const total = parseFloat(calculateTotal());
     const invoiceData = {
       invoiceNo: formData.invoiceNo,
@@ -113,35 +119,68 @@ const NewInvoice: React.FC = () => {
         amount: parseFloat(item.amount) || 0,
       })),
       total,
+      convertValues: (a: any, classs: any, asMap?: boolean) => a,
     };
 
     try {
-      console.log("Invoice Data Submitted:", invoiceData);
-      alert("Invoice created successfully!");
-      setFormData({
-        invoiceNo: "",
-        invoiceDate: "",
-        customerName: "",
-        customerAddress: "",
-        items: [{ description: "", amount: "" }],
-      });
+      const PDFComponent =
+        companyData?.companyName?.toLowerCase() === "dhanchha" ? (
+          <DhanchhaPDFDoc formData={formData} companyData={companyData!} />
+        ) : (
+          <DefaultPDFDoc formData={formData} companyData={companyData!} />
+        );
+
+      console.log(PDFComponent);
+      // Generate the PDF blob using react-pdf
+      const blob = await pdf(PDFComponent)?.toBlob();
+      if (!blob) {
+        throw new Error("Failed to generate PDF blob");
+      }
+
+      // Convert blob to base64 string
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = reader.result?.toString();
+        if (!base64data) {
+          throw new Error("Failed to convert blob to base64");
+        }
+        // Remove the "data:application/pdf;base64," prefix if present
+        const base64Prefix = "data:application/pdf;base64,";
+        const pdfBase64 = base64data.startsWith(base64Prefix)
+          ? base64data.substring(base64Prefix.length)
+          : base64data;
+
+        // Call backend function to save the PDF file
+        await SaveInvoicePDF(company, formData.invoiceNo, pdfBase64);
+
+        // Call backend function to add the invoice data
+        await AddInvoice(company, invoiceData);
+
+        alert("Invoice created and PDF saved successfully!");
+        setFormData({
+          invoiceNo: "",
+          invoiceDate: "",
+          customerName: "",
+          customerAddress: "",
+          items: [{ description: "", amount: "" }],
+        });
+      };
     } catch (err) {
       console.error("Error creating invoice:", err);
       alert("Failed to create invoice.");
     }
   };
 
-  let isDefultTemplate = companyData?.companyName !== "dhanchha";
-
-  console.log("companyData", companyData);
+  const isDefaultTemplate =
+    companyData?.companyName?.toLowerCase() !== "dhanchha";
 
   return (
     <div className="flex flex-col p-4">
       <h1 className="text-dp text-3xl py-10">New Invoice</h1>
-      {/* Responsive container: stacked on md, side by side on lg */}
       {localStorage.getItem("userTemplateData")?.length !== 0 && companyData ? (
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Form container */}
+          {/* Form Container */}
           <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-6 w-full lg:w-1/2 dark:bg-lp-dark bg-white border dark:border-0 rounded-lg p-4"
@@ -192,7 +231,7 @@ const NewInvoice: React.FC = () => {
                   onChange={handleInputChange}
                 />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 mb-4">
                 <label htmlFor="customerAddress" className="font-medium">
                   Customer Address:
                 </label>
@@ -204,9 +243,17 @@ const NewInvoice: React.FC = () => {
                   required
                   onChange={handleInputChange}
                 />
+
+                {/* Live Preview of the Address */}
+                <div className="mt-2 p-2 border rounded-md bg-gray-50">
+                  <strong>Address Preview:</strong>
+                  <p>
+                    {formData.customerAddress ||
+                      "Your address will appear here..."}
+                  </p>
+                </div>
               </div>
             </div>
-
             <div className="mb-4">
               <h2 className="text-xl text-dp mb-4">Items</h2>
               <div className="flex mb-2 font-semibold">
@@ -261,7 +308,6 @@ const NewInvoice: React.FC = () => {
                 </div>
               </div>
             </div>
-
             <button
               type="submit"
               className="dark:bg-mp-dark self-start bg-dp px-4 py-2 rounded-lg text-white hover:dark:bg-mp hover:bg-mp"
@@ -270,9 +316,9 @@ const NewInvoice: React.FC = () => {
             </button>
           </form>
 
-          {/* PDF Preview container */}
+          {/* PDF Preview Container */}
           {companyData ? (
-            isDefultTemplate ? (
+            isDefaultTemplate ? (
               <div className="w-full lg:w-1/2 border dark:border-0 dark:bg-gray-700 bg-gray-100 rounded-lg p-4 h-full">
                 <DefaultPDF formData={formData} companyData={companyData} />
               </div>

@@ -2,26 +2,46 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
-
-	"github.com/go-pdf/fpdf"
 )
 
-// Invoice represents a single invoice with a generated invoice number and serial number.
+// Invoice is the full type stored in the system.
 type Invoice struct {
-	InvoiceNumber   int       `json:"invoiceNumber"`
-	SerialNumber    int       `json:"serialNumber"`
+	InvoiceNo       string    `json:"invoiceNo"`
 	CustomerName    string    `json:"customerName"`
 	CustomerAddress string    `json:"customerAddress"`
 	Items           []Item    `json:"items"`
 	Total           float64   `json:"total"`
 	CreatedAt       time.Time `json:"createdAt"`
+	IsPaid          bool      `json:"isPaid"`
+	CompanyName     string    `json:"companyName"`
+}
+
+// InvoiceData is a subset of Invoice for API returns.
+type InvoiceData struct {
+	InvoiceNo    string    `json:"invoiceNo"`
+	CustomerName string    `json:"customerName"`
+	Total        float64   `json:"total"`
+	CreatedAt    time.Time `json:"createdAt"`
+	IsPaid       bool      `json:"isPaid"`
+}
+
+// InvoiceInput is the type expected from the frontend.
+type InvoiceInput struct {
+	InvoiceNo       string  `json:"invoiceNo"`
+	InvoiceDate     string  `json:"invoiceDate"`
+	CustomerName    string  `json:"customerName"`
+	CustomerAddress string  `json:"customerAddress"`
+	Items           []Item  `json:"items"`
+	Total           float64 `json:"total"`
 }
 
 // Item represents an individual line item on an invoice.
@@ -30,135 +50,171 @@ type Item struct {
 	Amount      float64 `json:"amount"`
 }
 
-// App is our Wails application backend.
-type App struct {
-	invoices        []Invoice
-	ctx             context.Context
-	pdfTemplatePath string // default or custom PDF template path
+// CompanyInfo stores company-specific information.
+type CompanyInfo struct {
+	Name            string `json:"name"`
+	CompanyName     string `json:"companyName"`
+	CompanyAddress  string `json:"companyAddress"`
+	GstNo           string `json:"gstNo"`
+	TransactionType string `json:"transactionType"`
+	PanNo           string `json:"panNo"`
+	BankName        string `json:"bankName"`
+	AccountNo       string `json:"accountNo"`
+	Ifsc            string `json:"ifsc"`
+	Email           string `json:"email"`
 }
 
-// NewApp creates a new App application with default values.
+// App holds the application state.
+type App struct {
+	ctx          context.Context
+	companies    map[string][]Invoice
+	companyInfos map[string]CompanyInfo
+}
+
+// NewApp creates a new App instance.
 func NewApp() *App {
 	app := &App{
-		invoices:        []Invoice{},
-		pdfTemplatePath: "templates/default.pdf", // default template file
+		companies:    make(map[string][]Invoice),
+		companyInfos: make(map[string]CompanyInfo),
 	}
-	// Try to load previously stored invoices
-	if err := app.loadInvoices(); err != nil {
-		fmt.Println("Error loading invoices:", err)
+
+	// List of companies (will be used with lower-case keys)
+	companies := []string{"DHANCHHA", "RACHANA", "MITAL"}
+	for _, company := range companies {
+		app.loadCompanyData(company)
 	}
+
 	return app
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// loadInvoices loads invoice history from a JSON file.
-func (a *App) loadInvoices() error {
-	// Ensure the data folder exists
-	os.MkdirAll("data", os.ModePerm)
-	dataPath := "data/invoices.json"
-	if _, err := os.Stat(dataPath); os.IsNotExist(err) {
-		// File doesn't exist – start with an empty list.
-		a.invoices = []Invoice{}
-		return nil
-	}
-	bytes, err := ioutil.ReadFile(dataPath)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(bytes, &a.invoices)
+// getCompanyDataPath returns the path for company data.
+func getCompanyDataPath(company, fileType string) string {
+	company = strings.ToLower(company)
+	return filepath.Join("data", company, fmt.Sprintf("%s_%s.json", company, fileType))
 }
 
-// saveInvoices writes the current invoice history to a JSON file.
-func (a *App) saveInvoices() error {
-	data, err := json.MarshalIndent(a.invoices, "", "  ")
-	if err != nil {
-		return err
-	}
-	os.MkdirAll("data", os.ModePerm)
-	return ioutil.WriteFile("data/invoices.json", data, 0644)
-}
+// loadCompanyData loads invoices and company info from file.
+func (a *App) loadCompanyData(company string) error {
+	companyDir := filepath.Join("data", strings.ToLower(company))
+	os.MkdirAll(companyDir, os.ModePerm)
 
-// AddInvoice receives invoice data (from your React frontend), generates invoice and serial numbers,
-// stamps the creation time, appends the invoice to the history, and saves it locally.
-func (a *App) AddInvoice(invoice Invoice) error {
-	invoice.InvoiceNumber = len(a.invoices) + 1
-	// For example, using an offset for serial numbers
-	invoice.SerialNumber = len(a.invoices) + 1000
-	invoice.CreatedAt = time.Now()
-	a.invoices = append(a.invoices, invoice)
-	return a.saveInvoices()
-}
-
-// GetInvoices returns the stored invoice history.
-func (a *App) GetInvoices() []Invoice {
-	return a.invoices
-}
-
-// GeneratePDF creates a PDF file for a given invoice number.
-// It uses a simple layout with fpdf; if you later decide to use a template,
-// you can enhance this function to parse the template file and overlay invoice data.
-func (a *App) GeneratePDF(invoiceNumber int) (string, error) {
-	// Find the invoice by its number.
-	var inv *Invoice
-	for i, v := range a.invoices {
-		if v.InvoiceNumber == invoiceNumber {
-			inv = &a.invoices[i]
-			break
+	invoicesPath := getCompanyDataPath(company, "invoices")
+	if data, err := os.ReadFile(invoicesPath); err == nil {
+		var invoices []Invoice
+		if err := json.Unmarshal(data, &invoices); err == nil {
+			a.companies[strings.ToLower(company)] = invoices
 		}
 	}
-	if inv == nil {
-		return "", fmt.Errorf("invoice not found")
+
+	infoPath := getCompanyDataPath(company, "info")
+	if data, err := os.ReadFile(infoPath); err == nil {
+		var companyInfo CompanyInfo
+		if err := json.Unmarshal(data, &companyInfo); err == nil {
+			a.companyInfos[strings.ToLower(company)] = companyInfo
+		}
 	}
 
-	// Create a new PDF document.
-	pdf := fpdf.New("P", "mm", "A4", "")
-	pdf.AddPage()
-	pdf.SetFont("Arial", "B", 16)
-	// Header
-	pdf.Cell(40, 10, fmt.Sprintf("Invoice #%d", inv.InvoiceNumber))
-	pdf.Ln(12)
-
-	// Customer info
-	pdf.SetFont("Arial", "", 12)
-	pdf.Cell(40, 10, fmt.Sprintf("Customer: %s", inv.CustomerName))
-	pdf.Ln(8)
-	pdf.Cell(40, 10, fmt.Sprintf("Address: %s", inv.CustomerAddress))
-	pdf.Ln(8)
-	pdf.Cell(40, 10, fmt.Sprintf("Date: %s", inv.CreatedAt.Format("2006-01-02 15:04")))
-	pdf.Ln(12)
-
-	// Table header
-	pdf.Cell(100, 10, "Description")
-	pdf.Cell(40, 10, "Amount")
-	pdf.Ln(10)
-	// Table rows
-	for _, item := range inv.Items {
-		pdf.Cell(100, 10, item.Description)
-		pdf.Cell(40, 10, fmt.Sprintf("%.2f", item.Amount))
-		pdf.Ln(8)
-	}
-	pdf.Ln(10)
-	pdf.Cell(100, 10, "Total")
-	pdf.Cell(40, 10, fmt.Sprintf("%.2f", inv.Total))
-
-	// Save the PDF to the data folder.
-	os.MkdirAll("data", os.ModePerm)
-	outputPath := fmt.Sprintf("data/invoice_%d.pdf", inv.InvoiceNumber)
-	err := pdf.OutputFileAndClose(outputPath)
-	if err != nil {
-		return "", err
-	}
-	return outputPath, nil
+	return nil
 }
 
-// ExportCSV writes all invoices to a CSV file and returns its path.
-func (a *App) ExportCSV() (string, error) {
-	filePath := "data/invoices_export.csv"
+// saveCompanyData writes the company data back to file.
+func (a *App) saveCompanyData(company string) error {
+	companyKey := strings.ToLower(company)
+	if data, err := json.MarshalIndent(a.companies[companyKey], "", "  "); err == nil {
+		os.WriteFile(getCompanyDataPath(company, "invoices"), data, 0644)
+	}
+
+	if data, err := json.MarshalIndent(a.companyInfos[companyKey], "", "  "); err == nil {
+		os.WriteFile(getCompanyDataPath(company, "info"), data, 0644)
+	}
+
+	return nil
+}
+
+// AddInvoice accepts InvoiceInput from the frontend, converts it to a full Invoice.
+func (a *App) AddInvoice(company string, input InvoiceInput) error {
+	company = strings.ToLower(company)
+	invoice := Invoice{
+		InvoiceNo:       input.InvoiceNo,
+		CustomerName:    input.CustomerName,
+		CustomerAddress: input.CustomerAddress,
+		Items:           input.Items,
+		Total:           input.Total,
+		CreatedAt:       time.Now(),
+		IsPaid:          false,
+		CompanyName:     company,
+	}
+
+	// Fiscal year logic (example)
+	var fiscalYear string
+	currentMonth := time.Now().Month()
+	currentYear := time.Now().Year()
+	if currentMonth >= 4 {
+		fiscalYear = fmt.Sprintf("%d-%d", currentYear%100, (currentYear+1)%100)
+	} else {
+		fiscalYear = fmt.Sprintf("%d-%d", (currentYear-1)%100, currentYear%100)
+	}
+
+	// Generate invoice number if missing.
+	if invoice.InvoiceNo == "" {
+		lastInvoice := a.getLastInvoice(company)
+		if lastInvoice == nil {
+			invoice.InvoiceNo = fmt.Sprintf("%s/%s/001", string(company[0]), fiscalYear)
+		} else {
+			parts := strings.Split(lastInvoice.InvoiceNo, "/")
+			if len(parts) == 3 {
+				num, _ := strconv.Atoi(parts[2])
+				invoice.InvoiceNo = fmt.Sprintf("%s/%s/%03d", string(company[0]), fiscalYear, num+1)
+			}
+		}
+	}
+
+	if _, exists := a.companies[company]; !exists {
+		a.companies[company] = []Invoice{}
+	}
+	a.companies[company] = append(a.companies[company], invoice)
+	return a.saveCompanyData(company)
+}
+
+// getLastInvoice returns the last invoice for the given company.
+func (a *App) getLastInvoice(company string) *Invoice {
+	invoices := a.companies[company]
+	if len(invoices) == 0 {
+		return nil
+	}
+	return &invoices[len(invoices)-1]
+}
+
+// GetInvoices returns invoice data for the given company.
+func (a *App) GetInvoices(company string) ([]InvoiceData, error) {
+	company = strings.ToLower(company)
+	invoices, ok := a.companies[company]
+	if !ok {
+		return nil, fmt.Errorf("company data not found for: %s", company)
+	}
+
+	result := make([]InvoiceData, len(invoices))
+	for i, inv := range invoices {
+		result[i] = InvoiceData{
+			InvoiceNo:    inv.InvoiceNo,
+			CustomerName: inv.CustomerName,
+			Total:        inv.Total,
+			CreatedAt:    inv.CreatedAt,
+			IsPaid:       inv.IsPaid,
+		}
+	}
+
+	return result, nil
+}
+
+// ExportCSV exports invoice data to a CSV file for the given company.
+func (a *App) ExportCSV(company string) (string, error) {
+	company = strings.ToLower(company)
+	filePath := filepath.Join("data", company, "invoices_export.csv")
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", err
@@ -168,31 +224,76 @@ func (a *App) ExportCSV() (string, error) {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	// Write header row.
-	header := []string{"InvoiceNumber", "SerialNumber", "CustomerName", "CustomerAddress", "Total", "CreatedAt"}
+	header := []string{"Invoice No", "Customer Name", "Customer Address", "Total", "Created At", "Is Paid"}
 	if err := writer.Write(header); err != nil {
 		return "", err
 	}
-	// Write each invoice as a CSV row.
-	for _, inv := range a.invoices {
+
+	for _, inv := range a.companies[company] {
 		row := []string{
-			strconv.Itoa(inv.InvoiceNumber),
-			strconv.Itoa(inv.SerialNumber),
+			inv.InvoiceNo,
 			inv.CustomerName,
 			inv.CustomerAddress,
 			fmt.Sprintf("%.2f", inv.Total),
 			inv.CreatedAt.Format(time.RFC3339),
+			strconv.FormatBool(inv.IsPaid),
 		}
 		if err := writer.Write(row); err != nil {
 			return "", err
 		}
 	}
+
 	return filePath, nil
 }
 
-// ImportTemplate sets a new PDF template path.
-// (In a real-world scenario, you might copy the file to a specific folder or parse it for placeholders.)
-func (a *App) ImportTemplate(path string) error {
-	a.pdfTemplatePath = path
-	return nil
+// SaveInvoicePDF saves a PDF for the invoice after decoding its base64 representation.
+func (a *App) SaveInvoicePDF(company string, invoiceNo string, pdfBase64 string) error {
+	company = strings.ToLower(company)
+	pdfDir := filepath.Join("data", company, "pdf")
+	if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
+		return err
+	}
+
+	pdfData, err := decodeBase64(pdfBase64)
+	if err != nil {
+		return err
+	}
+
+	pdfPath := filepath.Join(pdfDir, fmt.Sprintf("%s.pdf", invoiceNo))
+	return os.WriteFile(pdfPath, pdfData, 0644)
+}
+
+// decodeBase64 decodes a base64 encoded string.
+func decodeBase64(data string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(data)
+}
+
+// ToggleInvoicePayment toggles the isPaid field for a specific invoice.
+func (a *App) ToggleInvoicePayment(company string, invoiceNo string) error {
+	company = strings.ToLower(company)
+	invoices, ok := a.companies[company]
+	if !ok {
+		return fmt.Errorf("company data not found for: %s", company)
+	}
+
+	for i, inv := range invoices {
+		if inv.InvoiceNo == invoiceNo {
+			a.companies[company][i].IsPaid = !inv.IsPaid
+			return a.saveCompanyData(company)
+		}
+	}
+
+	return fmt.Errorf("invoice not found: %s", invoiceNo)
+}
+
+// GeneratePDF is a stub that simulates PDF generation by saving a base64 string.
+// In a real implementation, you would generate a PDF dynamically.
+func (a *App) GeneratePDF(company string, invoiceNo string) (string, error) {
+	// For demo purposes, let's assume we receive a base64 PDF string from somewhere.
+	dummyPDFBase64 := "JVBERi0xLjQKJcTl8uXr..."
+	if err := a.SaveInvoicePDF(company, invoiceNo, dummyPDFBase64); err != nil {
+		return "", err
+	}
+	pdfPath := filepath.Join("data", strings.ToLower(company), "pdf", fmt.Sprintf("%s.pdf", invoiceNo))
+	return pdfPath, nil
 }

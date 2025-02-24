@@ -5,13 +5,11 @@ import {
   View,
   Document,
   PDFViewer,
-  PDFDownloadLink,
   Image,
 } from "@react-pdf/renderer";
 import { StyleSheet } from "@react-pdf/renderer";
 
-// Updated CompanyInfo interface
-interface CompanyInfo {
+export interface CompanyInfo {
   name: string;
   companyName: string;
   companyAddress: string;
@@ -26,7 +24,7 @@ interface CompanyInfo {
   isTemplateFilled?: boolean;
 }
 
-interface FormDataType {
+export interface FormDataType {
   invoiceNo: string;
   invoiceDate: string;
   customerName: string;
@@ -42,133 +40,250 @@ interface DefaultPDFProps {
   companyData: CompanyInfo;
 }
 
-export default function DefaultPDF({ formData, companyData }: DefaultPDFProps) {
-  if (!formData || !companyData) {
-    return null;
-  }
-
-  // This function can be enhanced or replaced by a proper conversion library
+// Separated InvoicePDF component for generation
+export const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
   function convertNumberToWords(amount: number): string {
-    // For demo purposes, simply return a placeholder
     return "Twenty Five Thousand Rupees";
   }
 
-  console.log();
-  const InvoicePDF = () => (
+  return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header: Logo, Company Info and Invoice Details */}
-        <View style={styles.header}>
-          <View style={styles.companyLogoContainer}>
+        {/* Sidebar Section */}
+        <View style={styles.sidebar}>
+          {/* Logo and Main Title */}
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             {companyData.companyLogo && (
-              <Image src={companyData.companyLogo} style={styles.companyLogo} />
+              <Image style={styles.logo} src={companyData.companyLogo} />
             )}
+            <Text
+              style={{
+                textAlign: "center",
+                fontSize: 18,
+                fontWeight: "700",
+                fontFamily: "Helvetica",
+              }}
+            >
+              Nikhil B Fultariya
+            </Text>
           </View>
-          <View style={styles.companyInfo}>
-            <Text style={styles.companyTitle}>{companyData.companyName}</Text>
-            {companyData.companyAddress.split(",").map((line, idx) => (
-              <Text key={idx} style={styles.companyAddressText}>
+
+          {/* Horizontal line */}
+          <View
+            style={{
+              position: "absolute",
+              top: "10%",
+              backgroundColor: "rgba(0,0,0,0.75)",
+              height: 0.7,
+              width: "293.5%",
+
+              marginVertical: 16,
+            }}
+          />
+
+          {/* Invoice Details Section */}
+          <View style={styles.sidebarSectionInvoiceDetails}>
+            <Text style={styles.sidebarLabel}>Invoice No.</Text>
+            <Text style={styles.sidebarValue}>
+              {formData.invoiceNo ? formData.invoiceNo : 1111}
+            </Text>
+
+            <Text style={styles.sidebarLabel}>Invoice Date</Text>
+            <Text style={styles.sidebarValue}>{formData.invoiceDate}</Text>
+
+            <Text style={styles.sidebarLabel}>Transaction Type</Text>
+            <Text style={styles.sidebarValue}>
+              {companyData.transactionType}
+            </Text>
+          </View>
+
+          {/* Horizontal line */}
+          <View
+            style={{
+              position: "absolute",
+              top: "28.75%",
+              backgroundColor: "rgba(0,0,0,0.75)",
+              height: 0.7,
+              width: "293.5%",
+            }}
+          />
+
+          {/* Company PAN Section */}
+          <View style={styles.sidebarSectionCompanyPAN}>
+            <Text style={styles.sidebarLabel}>PAN No.</Text>
+            <Text style={styles.sidebarValue}>{companyData.panNo}</Text>
+          </View>
+
+          {/* Horizontal line */}
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.75)",
+              height: 0.7,
+              width: "100%",
+            }}
+          />
+
+          {/* Bank Details */}
+          <View style={styles.sidebarSectionBankDetails}>
+            <Text style={styles.sidebarLabel}>Bank Details</Text>
+            <Text style={styles.sidebarValue}>{companyData.name}</Text>
+            <Text style={styles.sidebarValue}>{companyData.bankName}</Text>
+            <Text style={styles.sidebarValue}>
+              A/c No: {companyData.accountNo}
+            </Text>
+            <Text style={styles.sidebarValue}>IFSC: {companyData.ifsc}</Text>
+          </View>
+
+          {/* Horizontal line */}
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.75)",
+              height: 0.7,
+              width: "100%",
+            }}
+          />
+
+          {/* Email */}
+          <View style={styles.sidebarSectionEmail}>
+            <Text style={styles.sidebarLabel}>Email</Text>
+            <Text style={styles.sidebarValue}>{companyData.email}</Text>
+            <Text style={styles.sidebarLabel}>Website</Text>
+            <Text style={styles.sidebarValue}>www.dhancha.com</Text>
+          </View>
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.75)",
+              height: 0.7,
+              width: "100%",
+            }}
+          />
+          {/* Horizontal line */}
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.75)",
+              height: 0.7,
+              width: "293.5%",
+
+              position: "absolute",
+              top: "75.7%",
+            }}
+          />
+
+          {/* Company Address */}
+          <View style={styles.sidebarSectionAddress}>
+            <Text style={styles.sidebarLabel}>Address</Text>
+            {companyData.companyAddress.split(",").map((line, index) => (
+              <Text key={index} style={styles.sidebarValue}>
                 {line.trim()}
               </Text>
             ))}
           </View>
-          <View style={styles.invoiceInfo}>
-            <Text style={styles.invoiceLabel}>INVOICE</Text>
-            <Text>Invoice No: {formData.invoiceNo}</Text>
-            <Text>Invoice Date: {formData.invoiceDate}</Text>
-            <Text>Transaction Type: {companyData.transactionType}</Text>
-          </View>
         </View>
 
-        {/* Additional Company Details */}
-        <View style={styles.companyDetails}>
-          <Text>PAN No: {companyData.panNo}</Text>
-          <Text>Bank Name: {companyData.bankName}</Text>
-          <Text>Account No: {companyData.accountNo}</Text>
-          <Text>IFSC: {companyData.ifsc}</Text>
-          <Text>Email: {companyData.email}</Text>
-        </View>
+        {/* Main Content Section */}
+        <View style={styles.mainContent}>
+          <Text style={styles.invoiceTitle}>INVOICE</Text>
 
-        {/* Bill To Section */}
-        <View style={styles.billToSection}>
-          <Text style={styles.sectionTitle}>Bill To:</Text>
-          <Text>{formData.customerName}</Text>
-          {formData.customerAddress.split(",").map((line, idx) => (
-            <Text key={idx}>{line.trim()}</Text>
-          ))}
-        </View>
-
-        {/* Invoice Items Table */}
-        <View style={styles.table}>
-          <View style={styles.tableRowHeader}>
-            <Text
-              style={[
-                styles.tableCell,
-                styles.descriptionCell,
-                styles.boldText,
-              ]}
-            >
-              Description
-            </Text>
-            <Text
-              style={[styles.tableCell, styles.amountCell, styles.boldText]}
-            >
-              Amount
+          {/* Client Details */}
+          <View style={styles.clientSection}>
+            <Text style={styles.companyName}>{formData.customerName}</Text>
+            <Text style={styles.sidebarValue}>
+              {companyData.companyAddress}
             </Text>
           </View>
-          {formData.items.map((item, idx) => (
-            <View key={idx} style={styles.tableRow}>
-              <Text style={[styles.tableCell, styles.descriptionCell]}>
-                {item.description}
-              </Text>
-              <Text style={[styles.tableCell, styles.amountCell]}>
-                ₹{parseFloat(item.amount).toFixed(2)}
+
+          {/* Items Table */}
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={styles.descriptionCol}>Description</Text>
+              <Text style={styles.amountCol}>Amount</Text>
+            </View>
+
+            {formData.items.map((item, index) => (
+              <View key={index} style={styles.tableRow}>
+                <Text style={styles.descriptionCol}>{item.description}</Text>
+                <Text style={styles.amountCol}>
+                  {parseFloat(item.amount).toFixed(2)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Totals */}
+          <View
+            style={{
+              justifyContent: "space-between",
+              width: "94.5%",
+              display: "flex",
+              flexDirection: "row",
+              position: "absolute",
+              top: "76.5%",
+            }}
+          >
+            <View style={styles.total}>
+              <Text>Total: </Text>
+              <Text style={styles.totalInWords}>
+                {convertNumberToWords(
+                  formData.items.reduce(
+                    (sum, item) => sum + (parseFloat(item.amount) || 0),
+                    0
+                  )
+                )}{" "}
+                Only
               </Text>
             </View>
-          ))}
-        </View>
+            <View
+              style={{
+                // textAlign: "right",
+                marginRight: 8,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Helvetica-Bold",
+                }}
+              >
+                {formData.items
+                  .reduce(
+                    (sum, item) => sum + (parseFloat(item.amount) || 0),
+                    0
+                  )
+                  .toFixed(2)}
+              </Text>
+            </View>
+          </View>
 
-        {/* Total Section */}
-        <View style={styles.totalSection}>
-          <Text style={styles.boldText}>
-            Total: ₹
-            {formData.items
-              .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
-              .toFixed(2)}
-          </Text>
-          <Text style={styles.totalInWords}>
-            {convertNumberToWords(
-              formData.items.reduce(
-                (sum, item) => sum + (parseFloat(item.amount) || 0),
-                0
-              )
-            )}{" "}
-            Only
-          </Text>
+          {/* Signature */}
+          <View style={styles.signature}>
+            <Text>{companyData.name}</Text>
+            <Text>Proprietor {companyData.companyName}</Text>
+          </View>
         </View>
       </Page>
     </Document>
   );
+};
+
+// Preview component
+export default function DefaultPDF({ formData, companyData }: DefaultPDFProps) {
+  if (!formData || !companyData) {
+    return null;
+  }
 
   try {
     return (
       <div className="max-w-2xl mx-auto my-10">
         <div className="w-full h-[600px]">
           <PDFViewer width="100%" height="100%">
-            <InvoicePDF />
+            <InvoicePDF formData={formData} companyData={companyData} />
           </PDFViewer>
-        </div>
-        <div className="mt-6 flex justify-center">
-          <PDFDownloadLink document={<InvoicePDF />} fileName="invoice.pdf">
-            {({ loading }) => (
-              <button
-                className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300"
-                disabled={loading}
-              >
-                {loading ? "Loading document..." : "Download PDF"}
-              </button>
-            )}
-          </PDFDownloadLink>
         </div>
       </div>
     );
@@ -185,95 +300,129 @@ export default function DefaultPDF({ formData, companyData }: DefaultPDFProps) {
 const styles = StyleSheet.create({
   page: {
     backgroundColor: "#fff",
-    padding: "30px 50px",
-    fontSize: "12px",
+    padding: 0,
+    fontSize: 10,
     fontFamily: "Helvetica",
     color: "#262626",
-  },
-  header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
   },
-  companyLogoContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  sidebar: {
+    width: "33%",
+    height: "100%",
+    backgroundColor: "rgba(230, 230, 230, 1)",
+    padding: 20,
+    paddingLeft: 25,
   },
-  companyLogo: {
-    width: 60,
-    height: 60,
+  mainContent: {
+    width: "70%",
+    padding: "20px 10px",
+  },
+  logo: {
+    width: 170,
     objectFit: "contain",
+    marginBottom: 8,
   },
-  companyInfo: {
-    flex: 2,
-    textAlign: "center",
+  companyName: {
+    fontSize: 14,
+    marginBottom: 5,
   },
-  companyTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
+
+  sidebarSectionInvoiceDetails: {
+    marginVertical: 10,
+    paddingLeft: 6,
+    paddingTop: 20,
   },
-  companyAddressText: {
+  sidebarSectionCompanyPAN: {
+    paddingVertical: 20,
+
+    marginTop: 20,
+    paddingLeft: 6,
+  },
+  sidebarSectionBankDetails: {
+    paddingVertical: 20,
+
+    paddingLeft: 6,
+  },
+  sidebarSectionEmail: {
+    paddingVertical: 20,
+
+    paddingLeft: 6,
+  },
+  sidebarSectionAddress: {
+    paddingVertical: 15,
+
+    paddingLeft: 6,
+  },
+
+  sidebarLabel: {
+    color: "#666",
+    marginTop: 6,
+  },
+  sidebarValue: {
     fontSize: 10,
+    marginVertical: 2,
+    marginBottom: 2,
   },
-  invoiceInfo: {
-    flex: 2,
+  invoiceTitle: {
+    fontSize: 24,
+    marginBottom: 40,
     textAlign: "right",
   },
-  invoiceLabel: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  companyDetails: {
-    marginBottom: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#000",
-    paddingTop: 10,
-  },
-  billToSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontWeight: "bold",
-    marginBottom: 4,
+  clientSection: {
+    height: 135,
+    marginTop: 20,
+
+    display: "flex",
+    justifyContent: "center",
   },
   table: {
-    borderWidth: 1,
-    borderColor: "#000",
+    width: "100%",
+    marginTop: 5,
   },
-  tableRowHeader: {
+  tableHeader: {
+    backgroundColor: "#f9f9f9",
     flexDirection: "row",
-    backgroundColor: "#f0f0f0",
     borderBottomWidth: 1,
-    borderBottomColor: "#000",
+    borderBottomColor: "#e0e0e0",
+    padding: "8px 0",
   },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#000",
+    borderBottomColor: "#e0e0e0",
+    padding: "8px 0",
   },
-  tableCell: {
-    padding: 8,
-    flex: 1,
-  },
-  descriptionCell: {
+  descriptionCol: {
     flex: 2,
+    paddingLeft: 8,
   },
-  amountCell: {
+  amountCol: {
     flex: 1,
     textAlign: "right",
+    paddingRight: 8,
   },
-  boldText: {
-    fontWeight: "bold",
-  },
-  totalSection: {
-    marginTop: 10,
-    padding: 8,
-    alignItems: "flex-end",
+  total: {
+    textAlign: "left",
+    paddingRight: 8,
+    marginLeft: 8,
   },
   totalInWords: {
-    fontSize: 10,
+    marginTop: 2,
+    fontSize: 9,
     fontStyle: "italic",
+    color: "#666",
+  },
+  signature: {
+    position: "absolute",
+    bottom: 40,
+    right: 35,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 130,
+    borderTopColor: "#666",
+    borderTopWidth: 1,
+    paddingRight: 8,
+    paddingTop: 8,
   },
 });

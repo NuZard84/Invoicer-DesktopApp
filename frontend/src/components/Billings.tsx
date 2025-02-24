@@ -1,47 +1,41 @@
 import React, { useState, useEffect } from "react";
-import { GetInvoices, GeneratePDF, ExportCSV } from "../../wailsjs/go/main/App";
+import { GetInvoices } from "../../wailsjs/go/main/App";
+import { useParams } from "react-router-dom";
+import { Window } from "@wailsio/runtime";
 
 const Billings: React.FC = () => {
+  const { company } = useParams<{ company: string | undefined }>();
   const [invoices, setInvoices] = useState<any[]>([]);
 
+  const [companyString, setCompanyString] = useState<string>("");
+
   useEffect(() => {
-    fetchInvoices();
-  }, []);
-
-  const fetchInvoices = async () => {
-    try {
-      const data = await GetInvoices();
-      setInvoices(data);
-    } catch (err) {
-      console.error("Error fetching invoices:", err);
+    if (company) {
+      setCompanyString(company);
     }
-  };
+  }, [company]);
 
-  const handleGeneratePDF = async (invoiceNumber: number) => {
-    try {
-      const pdfPath = await GeneratePDF(invoiceNumber);
-      alert("PDF generated: " + pdfPath);
-    } catch (err) {
-      console.error("Error generating PDF:", err);
-      alert("Failed to generate PDF.");
-    }
-  };
+  useEffect(() => {
+    const fetchInvoiceData = async () => {
+      try {
+        const res = await GetInvoices(companyString);
+        setInvoices(res);
 
-  const handleExportCSV = async () => {
-    try {
-      const csvPath = await ExportCSV();
-      alert("CSV exported: " + csvPath);
-    } catch (err) {
-      console.error("Error exporting CSV:", err);
-      alert("Failed to export CSV.");
+        console.log("Get Invoice --> ", res);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    if (invoices.length === 0) {
+      fetchInvoiceData();
     }
-  };
+  }, [companyString]);
 
   return (
     <div className="p-4">
       <h1 className="text-3xl mb-4">Billing History</h1>
       <button
-        onClick={handleExportCSV}
+        onClick={() => {}}
         className="bg-green-600 px-3 py-2 text-white rounded-md mb-4"
       >
         Export CSV
@@ -60,8 +54,8 @@ const Billings: React.FC = () => {
         <tbody>
           {invoices.map((inv, index) => (
             <tr key={index}>
-              <td className="py-2 border text-center">{inv.invoiceNumber}</td>
-              <td className="py-2 border text-center">{inv.serialNumber}</td>
+              <td className="py-2 border text-center">{inv.invoiceNo}</td>
+              <td className="py-2 border text-center">{index + 1}</td>
               <td className="py-2 border text-center">{inv.customerName}</td>
               <td className="py-2 border text-center">
                 {parseFloat(inv.total).toFixed(2)}
@@ -71,7 +65,7 @@ const Billings: React.FC = () => {
               </td>
               <td className="py-2 border text-center">
                 <button
-                  onClick={() => handleGeneratePDF(inv.invoiceNumber)}
+                  onClick={() => {}}
                   className="bg-blue-600 text-white px-2 py-1 rounded-md"
                 >
                   Generate PDF
