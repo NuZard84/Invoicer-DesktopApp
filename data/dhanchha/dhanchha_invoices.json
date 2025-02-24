@@ -43,5 +43,20 @@
     "createdAt": "2025-02-24T14:47:40.2881393+05:30",
     "isPaid": false,
     "companyName": "dhanchha"
+  },
+  {
+    "invoiceNo": "10003",
+    "customerName": "Het Varasada",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
+    "items": [
+      {
+        "description": "dasda",
+        "amount": 1000
+      }
+    ],
+    "total": 1000,
+    "createdAt": "2025-02-24T16:32:44.8025242+05:30",
+    "isPaid": false,
+    "companyName": "dhanchha"
   }
 ]

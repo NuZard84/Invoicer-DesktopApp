@@ -1,6 +1,6 @@
 {
   "name": "",
-  "companyName": "",
+  "companyName": "rachana",
   "companyAddress": "",
   "gstNo": "",
   "transactionType": "",
@@ -9,5 +9,5 @@
   "accountNo": "",
   "ifsc": "",
   "email": "",
-  "pdfSavePath": "D:\\"
+  "pdfSavePath": "D:\\MyCodes\\Invoicer\\invoicer\\data\\rachana"
 }

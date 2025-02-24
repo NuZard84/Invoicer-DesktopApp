@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // Invoice is the full type stored in the system.
@@ -62,6 +64,7 @@ type CompanyInfo struct {
 	AccountNo       string `json:"accountNo"`
 	Ifsc            string `json:"ifsc"`
 	Email           string `json:"email"`
+	PDFSavePath     string `json:"pdfSavePath"` // New field for custom PDF save path
 }
 
 // App holds the application state.
@@ -91,9 +94,10 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// getCompanyDataPath returns the path for company data.
+// getCompanyDataPath returns the file path for the given company and file type.
 func getCompanyDataPath(company, fileType string) string {
 	company = strings.ToLower(company)
+	// This constructs paths like: data/dhanchha/dhanchha_invoices.json or data/dhanchha/dhanchha_info.json
 	return filepath.Join("data", company, fmt.Sprintf("%s_%s.json", company, fileType))
 }
 
@@ -247,9 +251,16 @@ func (a *App) ExportCSV(company string) (string, error) {
 }
 
 // SaveInvoicePDF saves a PDF for the invoice after decoding its base64 representation.
+// SaveInvoicePDF saves a PDF for the invoice after decoding its base64 representation.
 func (a *App) SaveInvoicePDF(company string, invoiceNo string, pdfBase64 string) error {
 	company = strings.ToLower(company)
-	pdfDir := filepath.Join("data", company, "pdf")
+	var pdfDir string
+	// Check if a custom PDF save path is set in the company info.
+	if info, ok := a.companyInfos[company]; ok && info.PDFSavePath != "" {
+		pdfDir = info.PDFSavePath
+	} else {
+		pdfDir = filepath.Join("data", company, "pdf")
+	}
 	if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
 		return err
 	}
@@ -296,4 +307,42 @@ func (a *App) GeneratePDF(company string, invoiceNo string) (string, error) {
 	}
 	pdfPath := filepath.Join("data", strings.ToLower(company), "pdf", fmt.Sprintf("%s.pdf", invoiceNo))
 	return pdfPath, nil
+}
+
+// SetCompanyPDFSavePath updates the PDF save path for a company.
+func (a *App) SetCompanyPDFSavePath(company string, initialPath string) (string, error) {
+	// Open a directory dialog for the user to select a folder.
+	selectedPath, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title:            "Select PDF Save Path",
+		DefaultDirectory: initialPath, // This can be empty or a previously set path.
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// Update the company info with the selected path.
+	company = strings.ToLower(company)
+	info, ok := a.companyInfos[company]
+	if !ok {
+		info = CompanyInfo{
+			CompanyName: company,
+			PDFSavePath: selectedPath,
+		}
+	} else {
+		info.PDFSavePath = selectedPath
+	}
+	a.companyInfos[company] = info
+	if err := a.saveCompanyData(company); err != nil {
+		return "", err
+	}
+	return selectedPath, nil
+}
+
+// GetCompanyPDFSavePath returns the current PDF save path for a company.
+func (a *App) GetCompanyPDFSavePath(company string) (string, error) {
+	company = strings.ToLower(company)
+	if info, ok := a.companyInfos[company]; ok {
+		return info.PDFSavePath, nil
+	}
+	return "", fmt.Errorf("company info not found for: %s", company)
 }

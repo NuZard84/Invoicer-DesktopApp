@@ -8,8 +8,12 @@ export function ExportCSV(arg1:string):Promise<string>;
 
 export function GeneratePDF(arg1:string,arg2:string):Promise<string>;
 
+export function GetCompanyPDFSavePath(arg1:string):Promise<string>;
+
 export function GetInvoices(arg1:string):Promise<Array<main.InvoiceData>>;
 
 export function SaveInvoicePDF(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function SetCompanyPDFSavePath(arg1:string,arg2:string):Promise<string>;
 
 export function ToggleInvoicePayment(arg1:string,arg2:string):Promise<void>;

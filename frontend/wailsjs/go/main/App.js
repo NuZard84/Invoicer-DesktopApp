@@ -14,12 +14,20 @@ export function GeneratePDF(arg1, arg2) {
   return window['go']['main']['App']['GeneratePDF'](arg1, arg2);
 }
 
+export function GetCompanyPDFSavePath(arg1) {
+  return window['go']['main']['App']['GetCompanyPDFSavePath'](arg1);
+}
+
 export function GetInvoices(arg1) {
   return window['go']['main']['App']['GetInvoices'](arg1);
 }
 
 export function SaveInvoicePDF(arg1, arg2, arg3) {
   return window['go']['main']['App']['SaveInvoicePDF'](arg1, arg2, arg3);
+}
+
+export function SetCompanyPDFSavePath(arg1, arg2) {
+  return window['go']['main']['App']['SetCompanyPDFSavePath'](arg1, arg2);
 }
 
 export function ToggleInvoicePayment(arg1, arg2) {

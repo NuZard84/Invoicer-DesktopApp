@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { SetCompanyPDFSavePath } from "../../wailsjs/go/main/App";
 
 const Template: React.FC = () => {
   const { company } = useParams();
@@ -17,6 +18,7 @@ const Template: React.FC = () => {
     accountNo: "",
     ifsc: "",
     email: "",
+    pdfSavePath: "", // New field for PDF save path
     isTemplateFilled: false,
   });
   const [fileName, setFileName] = useState<string | null>(null);
@@ -57,6 +59,21 @@ const Template: React.FC = () => {
         companyLogo: reader.result as string,
       }));
     };
+  };
+
+  // Updated function: calls backend to set the PDF save path.
+  const handleSelectPdfPath = async () => {
+    try {
+      // Await the returned selected path from the backend function.
+      const selectedPath = await SetCompanyPDFSavePath(
+        company!,
+        formData.pdfSavePath || ""
+      );
+      // Update your form data with the selected path.
+      setFormData((prev) => ({ ...prev, pdfSavePath: selectedPath }));
+    } catch (error) {
+      console.error("Error setting PDF path:", error);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -105,6 +122,7 @@ const Template: React.FC = () => {
       accountNo: "",
       ifsc: "",
       email: "",
+      pdfSavePath: "",
       isTemplateFilled: false,
     };
 
@@ -184,6 +202,12 @@ const Template: React.FC = () => {
             <strong>Email: </strong>
             {formData.email}
           </p>
+          {formData.pdfSavePath && (
+            <p className="text-lg">
+              <strong>PDF Save Path: </strong>
+              {formData.pdfSavePath}
+            </p>
+          )}
 
           <div className="flex gap-4">
             <button
@@ -391,7 +415,22 @@ const Template: React.FC = () => {
               <p className="dark:text-lp mt-1 text-sm">Selected: {fileName}</p>
             )}
           </div>
-
+          {/* PDF Path selection */}
+          <div className="gap-2 flex flex-col">
+            <label className="font-medium">Select PDF Save Path:</label>
+            <button
+              type="button"
+              onClick={handleSelectPdfPath}
+              className="bg-blue-500 text-white px-4 py-2 rounded-md w-fit"
+            >
+              {formData.pdfSavePath ? "Change PDF Path" : "Select PDF Path"}
+            </button>
+            {formData.pdfSavePath && (
+              <p className="text-sm mt-1">
+                Selected Path: {formData.pdfSavePath}
+              </p>
+            )}
+          </div>
           <button
             type="submit"
             className="dark:bg-mp-dark self-start bg-dp px-3 py-2 rounded-lg text-white hover:dark:bg-mp hover:bg-mp"
