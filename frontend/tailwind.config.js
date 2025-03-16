@@ -4,15 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        dp: "rgba(102, 94, 242, 1)",
+        dp: "rgb(250, 240, 230)",
         lp: "rgba(239, 239, 255, 1)",
-        "lp-dark": "rgba(50, 50, 75, 1)",
-        mp: "rgba(110, 104, 192, 1)",
-        "mp-dark": "rgba(80, 75, 162, 1)",
+        "lp-dark": "#667184",
+        mp: "#667184",
+        "mp-dark": "#667184",
         cbg: "rgba(252, 251, 252, 1)",
-        "cbg-dark": "rgba(30, 30, 40, 1)",
+        "cbg-dark": "rgb(48, 50, 54)",
         bg: "rgba(255, 255, 255, 1)",
-        "bg-dark": "rgba(15, 15, 20, 1)",
+        "bg-dark": "#161618",
         gf: "rgba(173, 181, 186, 1)",
         "gf-dark": "rgba(200, 200, 210, 1)",
       },

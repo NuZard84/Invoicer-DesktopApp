@@ -2,61 +2,90 @@
   {
     "invoiceNo": "10001",
     "customerName": "Het Varasada",
-    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujaratffdf",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
     "items": [
       {
-        "description": "dasd",
-        "amount": 22222
+        "description": "Product ",
+        "amount": 10000
       }
     ],
-    "total": 22222,
-    "createdAt": "2025-02-24T13:42:47.5820607+05:30",
-    "isPaid": false,
-    "companyName": "dhanchha"
+    "total": 10000,
+    "createdAt": "2025-02-25T19:23:35.1967521+05:30",
+    "isPaid": true,
+    "companyName": "dhanchha",
+    "paidAmount": 8000,
+    "tdsAmount": 2000
   },
   {
     "invoiceNo": "10002",
-    "customerName": "Het Varasada",
+    "customerName": "Het Varasada 2",
     "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
     "items": [
       {
-        "description": "dsdsa",
-        "amount": 1222
+        "description": "Product 2",
+        "amount": 200000
       }
     ],
-    "total": 1222,
-    "createdAt": "2025-02-24T14:46:03.3169639+05:30",
-    "isPaid": false,
-    "companyName": "dhanchha"
-  },
-  {
-    "invoiceNo": "10004",
-    "customerName": "Het Varasada",
-    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujaratffdf",
-    "items": [
-      {
-        "description": "dsadad",
-        "amount": 1222
-      }
-    ],
-    "total": 1222,
-    "createdAt": "2025-02-24T14:47:40.2881393+05:30",
-    "isPaid": false,
-    "companyName": "dhanchha"
+    "total": 200000,
+    "createdAt": "2025-02-25T19:24:24.5732052+05:30",
+    "isPaid": true,
+    "companyName": "dhanchha",
+    "paidAmount": 150000,
+    "tdsAmount": 50000
   },
   {
     "invoiceNo": "10003",
-    "customerName": "Het Varasada",
-    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
+    "customerName": "Het Varasada 3",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujaratt",
     "items": [
       {
-        "description": "dasda",
-        "amount": 1000
+        "description": "Product 3",
+        "amount": 20000
       }
     ],
-    "total": 1000,
-    "createdAt": "2025-02-24T16:32:44.8025242+05:30",
+    "total": 20000,
+    "createdAt": "2025-02-26T19:24:24.5732052+05:30",
+    "isPaid": true,
+    "companyName": "dhanchha",
+    "paidAmount": 15000,
+    "tdsAmount": 5000
+  },
+  {
+    "invoiceNo": "100003",
+    "customerName": "fsdsadsa",
+    "customerAddress": "ddsadsadsad",
+    "items": [
+      {
+        "description": "dsad",
+        "amount": 10000
+      }
+    ],
+    "total": 10000,
+    "createdAt": "2025-03-09T14:55:55.2958312+05:30",
+    "isPaid": true,
+    "companyName": "dhanchha",
+    "paidAmount": 10,
+    "tdsAmount": 9990
+  },
+  {
+    "invoiceNo": "dsadsa",
+    "customerName": "het patel",
+    "customerAddress": "kamdhenu party plote ",
+    "items": [
+      {
+        "description": "image w",
+        "amount": 10000
+      },
+      {
+        "description": "dsadas",
+        "amount": 1200
+      }
+    ],
+    "total": 11200,
+    "createdAt": "2025-03-13T12:31:01.5727169+05:30",
     "isPaid": false,
-    "companyName": "dhanchha"
+    "companyName": "dhanchha",
+    "paidAmount": 10000,
+    "tdsAmount": 1200
   }
 ]

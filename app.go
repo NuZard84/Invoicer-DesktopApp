@@ -25,6 +25,8 @@ type Invoice struct {
 	CreatedAt       time.Time `json:"createdAt"`
 	IsPaid          bool      `json:"isPaid"`
 	CompanyName     string    `json:"companyName"`
+	PaidAmount      float64   `json:"paidAmount"` // New field: actual paid amount
+	TDSAmount       float64   `json:"tdsAmount"`  // New field: TDS amount
 }
 
 // InvoiceData is a subset of Invoice for API returns.
@@ -34,6 +36,8 @@ type InvoiceData struct {
 	Total        float64   `json:"total"`
 	CreatedAt    time.Time `json:"createdAt"`
 	IsPaid       bool      `json:"isPaid"`
+	PaidAmount   float64   `json:"paidAmount"` // New field
+	TDSAmount    float64   `json:"tdsAmount"`  // New field
 }
 
 // InvoiceInput is the type expected from the frontend.
@@ -151,6 +155,8 @@ func (a *App) AddInvoice(company string, input InvoiceInput) error {
 		CreatedAt:       time.Now(),
 		IsPaid:          false,
 		CompanyName:     company,
+		PaidAmount:      input.Total,
+		TDSAmount:       0,
 	}
 
 	// Fiscal year logic (example)
@@ -193,6 +199,21 @@ func (a *App) getLastInvoice(company string) *Invoice {
 	return &invoices[len(invoices)-1]
 }
 
+// GetInvoiceDetail returns the full invoice details for a given invoice number.
+func (a *App) GetInvoiceDetail(company string, invoiceNo string) (*Invoice, error) {
+	company = strings.ToLower(company)
+	invoices, ok := a.companies[company]
+	if !ok {
+		return nil, fmt.Errorf("company data not found for: %s", company)
+	}
+	for _, inv := range invoices {
+		if inv.InvoiceNo == invoiceNo {
+			return &inv, nil
+		}
+	}
+	return nil, fmt.Errorf("invoice not found: %s", invoiceNo)
+}
+
 // GetInvoices returns invoice data for the given company.
 func (a *App) GetInvoices(company string) ([]InvoiceData, error) {
 	company = strings.ToLower(company)
@@ -209,10 +230,32 @@ func (a *App) GetInvoices(company string) ([]InvoiceData, error) {
 			Total:        inv.Total,
 			CreatedAt:    inv.CreatedAt,
 			IsPaid:       inv.IsPaid,
+			PaidAmount:   inv.PaidAmount,
+			TDSAmount:    inv.TDSAmount,
 		}
 	}
 
 	return result, nil
+}
+
+// UpdateInvoiceAmounts updates the PaidAmount and TDSAmount for a specific invoice.
+func (a *App) UpdateInvoiceAmounts(company string, invoiceNo string, paidAmount float64, _ float64) error {
+	company = strings.ToLower(company)
+	invoices, ok := a.companies[company]
+	if !ok {
+		return fmt.Errorf("company data not found for: %s", company)
+	}
+
+	for i, inv := range invoices {
+		if inv.InvoiceNo == invoiceNo {
+			a.companies[company][i].PaidAmount = paidAmount
+			// Compute TDS automatically: TDS = Total - PaidAmount
+			a.companies[company][i].TDSAmount = inv.Total - paidAmount
+			return a.saveCompanyData(company)
+		}
+	}
+
+	return fmt.Errorf("invoice not found: %s", invoiceNo)
 }
 
 // ExportCSV exports invoice data to a CSV file for the given company.
@@ -228,7 +271,7 @@ func (a *App) ExportCSV(company string) (string, error) {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	header := []string{"Invoice No", "Customer Name", "Customer Address", "Total", "Created At", "Is Paid"}
+	header := []string{"Invoice No", "Customer Name", "Customer Address", "Total", "Paid Amount", "TDS Amount", "Created At", "Is Paid"}
 	if err := writer.Write(header); err != nil {
 		return "", err
 	}
@@ -239,6 +282,8 @@ func (a *App) ExportCSV(company string) (string, error) {
 			inv.CustomerName,
 			inv.CustomerAddress,
 			fmt.Sprintf("%.2f", inv.Total),
+			fmt.Sprintf("%.2f", inv.PaidAmount),
+			fmt.Sprintf("%.2f", inv.TDSAmount),
 			inv.CreatedAt.Format(time.RFC3339),
 			strconv.FormatBool(inv.IsPaid),
 		}
@@ -251,26 +296,43 @@ func (a *App) ExportCSV(company string) (string, error) {
 }
 
 // SaveInvoicePDF saves a PDF for the invoice after decoding its base64 representation.
-// SaveInvoicePDF saves a PDF for the invoice after decoding its base64 representation.
 func (a *App) SaveInvoicePDF(company string, invoiceNo string, pdfBase64 string) error {
 	company = strings.ToLower(company)
 	var pdfDir string
+
 	// Check if a custom PDF save path is set in the company info.
 	if info, ok := a.companyInfos[company]; ok && info.PDFSavePath != "" {
 		pdfDir = info.PDFSavePath
+
+		// Check if the directory exists, create it if it doesn't
+		_, err := os.Stat(pdfDir)
+		if os.IsNotExist(err) {
+			// Try to create the directory
+			if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
+				// If we can't create the directory, fall back to the default path
+				pdfDir = filepath.Join("data", company, "pdf")
+				if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
+					return err
+				}
+			}
+		}
 	} else {
 		pdfDir = filepath.Join("data", company, "pdf")
+		if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
+			return err
+		}
 	}
-	if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
-		return err
-	}
+
+	// Sanitize the invoice number to make it safe for use as a filename
+	// Replace slashes with hyphens
+	safeInvoiceNo := strings.ReplaceAll(invoiceNo, "/", "-")
 
 	pdfData, err := decodeBase64(pdfBase64)
 	if err != nil {
 		return err
 	}
 
-	pdfPath := filepath.Join(pdfDir, fmt.Sprintf("%s.pdf", invoiceNo))
+	pdfPath := filepath.Join(pdfDir, fmt.Sprintf("%s.pdf", safeInvoiceNo))
 	return os.WriteFile(pdfPath, pdfData, 0644)
 }
 

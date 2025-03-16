@@ -47,6 +47,8 @@ const NewInvoice: React.FC = () => {
     customerAddress: "",
     items: [{ description: "", amount: "" }],
   });
+  const [isPanNo, setIsPanNo] = useState(true);
+  const [isBankDetails, setIsBankDetails] = useState(true);
 
   const [companyData, setCompanyData] = useState<CompanyInfo | null>(null);
 
@@ -57,7 +59,7 @@ const NewInvoice: React.FC = () => {
       try {
         const parsedData: CompanyInfo[] = JSON.parse(stored);
         const foundData = parsedData.find(
-          (item) => item.companyName.toLowerCase() === company.toLowerCase()
+          (item) => item.companyName?.toLowerCase() === company.toLowerCase()
         );
         if (foundData) {
           setCompanyData(foundData);
@@ -100,6 +102,10 @@ const NewInvoice: React.FC = () => {
       .reduce((total, item) => total + (parseFloat(item.amount) || 0), 0)
       .toFixed(2);
 
+  // Check if the current company should use the Dhanchha template
+  const isDhanchhaTemplate =
+    companyData?.companyName?.toLowerCase() === "dhanchha";
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -123,12 +129,19 @@ const NewInvoice: React.FC = () => {
     };
 
     try {
-      const PDFComponent =
-        companyData?.companyName?.toLowerCase() === "dhanchha" ? (
-          <DhanchhaPDFDoc formData={formData} companyData={companyData!} />
-        ) : (
-          <DefaultPDFDoc formData={formData} companyData={companyData!} />
-        );
+      // Use the correct PDF component based on company name
+      const PDFComponent = isDhanchhaTemplate ? (
+        <DhanchhaPDFDoc formData={formData} companyData={companyData!} />
+      ) : (
+        <DefaultPDFDoc
+          formData={formData}
+          companyData={companyData!}
+          flages={{
+            isPanNo: isPanNo,
+            isBankDetails: isBankDetails,
+          }}
+        />
+      );
 
       console.log(PDFComponent);
       // Generate the PDF blob using react-pdf
@@ -172,8 +185,33 @@ const NewInvoice: React.FC = () => {
     }
   };
 
-  const isDefaultTemplate =
-    companyData?.companyName?.toLowerCase() !== "dhanchha";
+  // Toggle switch component
+  const Toggle: React.FC<{
+    enabled: boolean;
+    setEnabled: (enabled: boolean) => void;
+    label: string;
+  }> = ({ enabled, setEnabled, label }) => {
+    return (
+      <div className="flex items-center space-x-2">
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={enabled}
+            onChange={() => setEnabled(!enabled)}
+          />
+          <div
+            className={`w-11 h-6 rounded-full peer ${
+              enabled
+                ? "bg-dp dark:bg-mp-dark after:translate-x-full"
+                : "bg-gray-300 dark:bg-gray-600"
+            } after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
+          ></div>
+        </label>
+        <span className="text-sm font-medium">{label}</span>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col p-4">
@@ -195,7 +233,7 @@ const NewInvoice: React.FC = () => {
                   id="invoiceNo"
                   type="text"
                   placeholder="Enter invoice number"
-                  className="dark:bg-slate-600 bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0"
+                  className="dark:bg-[#464a56] bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0"
                   value={formData.invoiceNo}
                   required
                   onChange={handleInputChange}
@@ -208,7 +246,7 @@ const NewInvoice: React.FC = () => {
                 <input
                   id="invoiceDate"
                   type="date"
-                  className="dark:bg-slate-600 bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0"
+                  className="dark:bg-[#464a56] bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0"
                   value={formData.invoiceDate}
                   required
                   onChange={handleInputChange}
@@ -225,7 +263,7 @@ const NewInvoice: React.FC = () => {
                   id="customerName"
                   type="text"
                   placeholder="Enter customer name"
-                  className="dark:bg-slate-600 bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0"
+                  className="dark:bg-[#464a56] bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0"
                   value={formData.customerName}
                   required
                   onChange={handleInputChange}
@@ -238,20 +276,11 @@ const NewInvoice: React.FC = () => {
                 <textarea
                   id="customerAddress"
                   placeholder="Enter customer address"
-                  className="dark:bg-slate-600 bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0 min-h-[80px] resize-none"
+                  className="dark:bg-[#464a56] bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0 min-h-[80px] resize-none"
                   value={formData.customerAddress}
                   required
                   onChange={handleInputChange}
                 />
-
-                {/* Live Preview of the Address */}
-                <div className="mt-2 p-2 border rounded-md bg-gray-50">
-                  <strong>Address Preview:</strong>
-                  <p>
-                    {formData.customerAddress ||
-                      "Your address will appear here..."}
-                  </p>
-                </div>
               </div>
             </div>
             <div className="mb-4">
@@ -266,7 +295,7 @@ const NewInvoice: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Product or service description"
-                    className="w-2/5 mr-2 dark:bg-slate-600 bg-white rounded-md pl-2 py-1 border dark:border-0"
+                    className="w-2/5 mr-2 dark:bg-[#464a56] bg-white rounded-md pl-2 py-1 border dark:border-0"
                     value={item.description}
                     onChange={(e) =>
                       handleItemChange(index, "description", e.target.value)
@@ -276,7 +305,7 @@ const NewInvoice: React.FC = () => {
                   <input
                     type="number"
                     placeholder="0.00"
-                    className="w-1/3 mr-2 dark:bg-slate-600 bg-white rounded-md pl-2 py-1 border dark:border-0"
+                    className="w-1/3 mr-2 dark:bg-[#464a56] bg-white rounded-md pl-2 py-1 border dark:border-0"
                     value={item.amount}
                     onChange={(e) =>
                       handleItemChange(index, "amount", e.target.value)
@@ -308,6 +337,26 @@ const NewInvoice: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* PDF Content Options Section - Only show for non-Dhanchha templates */}
+            {!isDhanchhaTemplate && (
+              <div className="mb-4">
+                <h2 className="text-xl text-dp mb-4">PDF Content Options</h2>
+                <div className="flex flex-col space-y-4">
+                  <Toggle
+                    enabled={isPanNo}
+                    setEnabled={setIsPanNo}
+                    label="Include PAN Number"
+                  />
+                  <Toggle
+                    enabled={isBankDetails}
+                    setEnabled={setIsBankDetails}
+                    label="Include Bank Details"
+                  />
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               className="dark:bg-mp-dark self-start bg-dp px-4 py-2 rounded-lg text-white hover:dark:bg-mp hover:bg-mp"
@@ -318,15 +367,20 @@ const NewInvoice: React.FC = () => {
 
           {/* PDF Preview Container */}
           {companyData ? (
-            isDefaultTemplate ? (
-              <div className="w-full lg:w-1/2 border dark:border-0 dark:bg-gray-700 bg-gray-100 rounded-lg p-4 h-full">
-                <DefaultPDF formData={formData} companyData={companyData} />
-              </div>
-            ) : (
-              <div className="w-full lg:w-1/2 border dark:border-0 dark:bg-gray-700 bg-gray-100 rounded-lg p-4 h-full">
+            <div className="w-full lg:w-1/2 border dark:border-0 dark:bg-[#464a56] bg-gray-100 rounded-lg p-4 h-full">
+              {isDhanchhaTemplate ? (
                 <DhanchhaPDF formData={formData} companyData={companyData} />
-              </div>
-            )
+              ) : (
+                <DefaultPDF
+                  formData={formData}
+                  companyData={companyData}
+                  flages={{
+                    isPanNo: isPanNo,
+                    isBankDetails: isBankDetails,
+                  }}
+                />
+              )}
+            </div>
           ) : (
             <div className="w-full lg:w-1/2 flex items-center justify-center">
               <p>Loading preview...</p>

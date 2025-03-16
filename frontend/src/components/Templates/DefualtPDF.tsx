@@ -35,235 +35,255 @@ export interface FormDataType {
   }[];
 }
 
+export interface FlagForDefault {
+  isPanNo: boolean;
+  isBankDetails: boolean;
+}
+
 interface DefaultPDFProps {
   formData: FormDataType;
   companyData: CompanyInfo;
+  flages: FlagForDefault;
+}
+
+function convertNumberToWords(amount: number): string {
+  const ones = [
+    "",
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+    "Twelve",
+    "Thirteen",
+    "Fourteen",
+    "Fifteen",
+    "Sixteen",
+    "Seventeen",
+    "Eighteen",
+    "Nineteen",
+  ];
+  const tens = [
+    "",
+    "",
+    "Twenty",
+    "Thirty",
+    "Forty",
+    "Fifty",
+    "Sixty",
+    "Seventy",
+    "Eighty",
+    "Ninety",
+  ];
+
+  function getWords(num: number): string {
+    if (num < 20) return ones[num];
+    if (num < 100)
+      return (
+        tens[Math.floor(num / 10)] +
+        (num % 10 !== 0 ? " " + ones[num % 10] : "")
+      );
+    if (num < 1000)
+      return (
+        ones[Math.floor(num / 100)] +
+        " Hundred" +
+        (num % 100 !== 0 ? " and " + getWords(num % 100) : "")
+      );
+    if (num < 100000)
+      return (
+        getWords(Math.floor(num / 1000)) +
+        " Thousand" +
+        (num % 1000 !== 0 ? " " + getWords(num % 1000) : "")
+      );
+    if (num < 10000000)
+      return (
+        getWords(Math.floor(num / 100000)) +
+        " Lakh" +
+        (num % 100000 !== 0 ? " " + getWords(num % 100000) : "")
+      );
+    return (
+      getWords(Math.floor(num / 10000000)) +
+      " Crore" +
+      (num % 10000000 !== 0 ? " " + getWords(num % 10000000) : "")
+    );
+  }
+
+  const integerPart = Math.floor(amount);
+  const decimalPart = Math.round((amount - integerPart) * 100);
+
+  let words = getWords(integerPart) + " Rupees";
+  if (decimalPart > 0) {
+    words += " and " + getWords(decimalPart) + " Paise";
+  }
+
+  return words + " Only";
 }
 
 // Separated InvoicePDF component for generation
-export const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
-  function convertNumberToWords(amount: number): string {
-    return "Twenty Five Thousand Rupees";
-  }
+export const InvoicePDF = ({
+  formData,
+  companyData,
+  flages,
+}: DefaultPDFProps) => {
+  // Calculate total amount
+  const totalAmount = formData.items.reduce(
+    (sum, item) => sum + (parseFloat(item.amount) || 0),
+    0
+  );
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Sidebar Section */}
-        <View style={styles.sidebar}>
-          {/* Logo and Main Title */}
-          <View
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {companyData.companyLogo && (
-              <Image style={styles.logo} src={companyData.companyLogo} />
-            )}
-            <Text
-              style={{
-                textAlign: "center",
-                fontSize: 18,
-                fontWeight: "700",
-                fontFamily: "Helvetica",
-              }}
-            >
-              Nikhil B Fultariya
-            </Text>
-          </View>
-
-          {/* Horizontal line */}
-          <View
-            style={{
-              position: "absolute",
-              top: "10%",
-              backgroundColor: "rgba(0,0,0,0.75)",
-              height: 0.7,
-              width: "293.5%",
-
-              marginVertical: 16,
-            }}
-          />
-
-          {/* Invoice Details Section */}
-          <View style={styles.sidebarSectionInvoiceDetails}>
-            <Text style={styles.sidebarLabel}>Invoice No.</Text>
-            <Text style={styles.sidebarValue}>
-              {formData.invoiceNo ? formData.invoiceNo : 1111}
-            </Text>
-
-            <Text style={styles.sidebarLabel}>Invoice Date</Text>
-            <Text style={styles.sidebarValue}>{formData.invoiceDate}</Text>
-
-            <Text style={styles.sidebarLabel}>Transaction Type</Text>
-            <Text style={styles.sidebarValue}>
-              {companyData.transactionType}
-            </Text>
-          </View>
-
-          {/* Horizontal line */}
-          <View
-            style={{
-              position: "absolute",
-              top: "28.75%",
-              backgroundColor: "rgba(0,0,0,0.75)",
-              height: 0.7,
-              width: "293.5%",
-            }}
-          />
-
-          {/* Company PAN Section */}
-          <View style={styles.sidebarSectionCompanyPAN}>
-            <Text style={styles.sidebarLabel}>PAN No.</Text>
-            <Text style={styles.sidebarValue}>{companyData.panNo}</Text>
-          </View>
-
-          {/* Horizontal line */}
-          <View
-            style={{
-              backgroundColor: "rgba(0,0,0,0.75)",
-              height: 0.7,
-              width: "100%",
-            }}
-          />
-
-          {/* Bank Details */}
-          <View style={styles.sidebarSectionBankDetails}>
-            <Text style={styles.sidebarLabel}>Bank Details</Text>
-            <Text style={styles.sidebarValue}>{companyData.name}</Text>
-            <Text style={styles.sidebarValue}>{companyData.bankName}</Text>
-            <Text style={styles.sidebarValue}>
-              A/c No: {companyData.accountNo}
-            </Text>
-            <Text style={styles.sidebarValue}>IFSC: {companyData.ifsc}</Text>
-          </View>
-
-          {/* Horizontal line */}
-          <View
-            style={{
-              backgroundColor: "rgba(0,0,0,0.75)",
-              height: 0.7,
-              width: "100%",
-            }}
-          />
-
-          {/* Email */}
-          <View style={styles.sidebarSectionEmail}>
-            <Text style={styles.sidebarLabel}>Email</Text>
-            <Text style={styles.sidebarValue}>{companyData.email}</Text>
-            <Text style={styles.sidebarLabel}>Website</Text>
-            <Text style={styles.sidebarValue}>www.dhancha.com</Text>
-          </View>
-          <View
-            style={{
-              backgroundColor: "rgba(0,0,0,0.75)",
-              height: 0.7,
-              width: "100%",
-            }}
-          />
-          {/* Horizontal line */}
-          <View
-            style={{
-              backgroundColor: "rgba(0,0,0,0.75)",
-              height: 0.7,
-              width: "293.5%",
-
-              position: "absolute",
-              top: "75.7%",
-            }}
-          />
-
-          {/* Company Address */}
-          <View style={styles.sidebarSectionAddress}>
-            <Text style={styles.sidebarLabel}>Address</Text>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.leftHeader}>
+            <Text style={styles.companyName}>{companyData.name}</Text>
             {companyData.companyAddress.split(",").map((line, index) => (
-              <Text key={index} style={styles.sidebarValue}>
+              <Text key={index} style={styles.addressLine}>
                 {line.trim()}
               </Text>
             ))}
           </View>
-        </View>
-
-        {/* Main Content Section */}
-        <View style={styles.mainContent}>
-          <Text style={styles.invoiceTitle}>INVOICE</Text>
-
-          {/* Client Details */}
-          <View style={styles.clientSection}>
-            <Text style={styles.companyName}>{formData.customerName}</Text>
-            <Text style={styles.sidebarValue}>
-              {companyData.companyAddress}
-            </Text>
-          </View>
-
-          {/* Items Table */}
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={styles.descriptionCol}>Description</Text>
-              <Text style={styles.amountCol}>Amount</Text>
-            </View>
-
-            {formData.items.map((item, index) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={styles.descriptionCol}>{item.description}</Text>
-                <Text style={styles.amountCol}>
-                  {parseFloat(item.amount).toFixed(2)}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Totals */}
-          <View
-            style={{
-              justifyContent: "space-between",
-              width: "94.5%",
-              display: "flex",
-              flexDirection: "row",
-              position: "absolute",
-              top: "76.5%",
-            }}
-          >
-            <View style={styles.total}>
-              <Text>Total: </Text>
-              <Text style={styles.totalInWords}>
-                {convertNumberToWords(
-                  formData.items.reduce(
-                    (sum, item) => sum + (parseFloat(item.amount) || 0),
-                    0
-                  )
-                )}{" "}
-                Only
-              </Text>
-            </View>
-            <View
-              style={{
-                // textAlign: "right",
-                marginRight: 8,
-              }}
-            >
-              <Text
+          <View style={styles.rightHeader}>
+            <Text style={styles.invoiceTitle}>INVOICE</Text>
+            <View style={styles.rightDetails}>
+              <View
                 style={{
-                  fontFamily: "Helvetica-Bold",
+                  flexDirection: "row",
+                  display: "flex",
+                  gap: 2,
                 }}
               >
-                {formData.items
-                  .reduce(
-                    (sum, item) => sum + (parseFloat(item.amount) || 0),
-                    0
-                  )
-                  .toFixed(2)}
+                <View
+                  style={{
+                    flexDirection: "column",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-end",
+                    gap: 2,
+                  }}
+                >
+                  <Text style={styles.detailLabel}>Invoice No.:-</Text>
+                  <Text style={styles.detailLabel}>Date:-</Text>
+                  <Text style={styles.detailLabel}>Transaction Type:-</Text>
+                  <Text style={styles.detailLabel}>PAN:-</Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "column",
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 2,
+                  }}
+                >
+                  <Text style={styles.detailValue}>{formData.invoiceNo}</Text>
+                  <Text style={styles.detailValue}>{formData.invoiceDate}</Text>
+                  <Text style={styles.detailValue}>
+                    {companyData.transactionType}
+                  </Text>
+                  <Text style={styles.detailValue}>{companyData.panNo}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Customer Details */}
+        <View style={styles.customerSection}>
+          <View style={styles.customerHeader}>
+            <Text style={styles.customerLabel}>To.</Text>
+          </View>
+          <View style={styles.customerDetails}>
+            <Text style={styles.customerName}>{formData.customerName}</Text>
+
+            <Text style={styles.customerAddressLine}>
+              {formData.customerAddress}
+            </Text>
+          </View>
+        </View>
+
+        {/* Items Table */}
+        <View style={styles.table}>
+          {/* Table Header */}
+          <View style={styles.tableHeader}>
+            <View style={styles.tableColumnSmall}>
+              <Text style={styles.tableHeaderText}>Sr. No.</Text>
+            </View>
+            <View style={styles.tableColumnLarge}>
+              <Text style={styles.tableHeaderText}>Descriptions</Text>
+            </View>
+            <View style={styles.tableColumnMedium}>
+              <Text style={styles.tableHeaderText}>Amount</Text>
+            </View>
+          </View>
+
+          {/* Table Rows */}
+          {formData.items.map((item, index) => (
+            <View key={index} style={styles.tableRow}>
+              <View style={styles.tableColumnSmall}>
+                <Text style={styles.tableCell}>{index + 1}</Text>
+              </View>
+              <View style={styles.tableColumnLarge}>
+                <Text style={styles.tableCell}>{item.description}</Text>
+              </View>
+              <View style={styles.tableColumnMedium}>
+                <Text style={styles.tableCellAmount}>
+                  {parseFloat(item.amount).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Text>
+              </View>
+            </View>
+          ))}
+
+          {/* Total Row */}
+          <View style={styles.totalRow}>
+            <View style={styles.totalLabelContainer}>
+              <Text style={styles.totalLabel}>Total Rs.:-</Text>
+            </View>
+            <View style={styles.totalAmountContainer}>
+              <Text style={styles.totalAmount}>
+                {totalAmount.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </Text>
             </View>
           </View>
 
-          {/* Signature */}
-          <View style={styles.signature}>
-            <Text>{companyData.name}</Text>
-            <Text>Proprietor {companyData.companyName}</Text>
+          {/* Amount in Words */}
+          <View style={styles.amountInWordsRow}>
+            <Text style={styles.amountInWords}>
+              {convertNumberToWords(totalAmount)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Bank Details */}
+        {flages.isBankDetails && (
+          <View style={styles.bankDetails}>
+            <Text style={styles.bankDetailsText}>{companyData.name}</Text>
+            <Text style={styles.bankDetailsText}>{companyData.bankName}</Text>
+            <Text style={styles.bankDetailsText}>
+              A/c No. {companyData.accountNo}
+            </Text>
+            <Text style={styles.bankDetailsText}>
+              IFSC : {companyData.ifsc}
+            </Text>
+          </View>
+        )}
+
+        {/* Signature Section */}
+        <View style={styles.signatureSection}>
+          <View style={styles.signatureContainer}>
+            <Text style={styles.signatureName}>{companyData.name}</Text>
           </View>
         </View>
       </Page>
@@ -271,8 +291,12 @@ export const InvoicePDF = ({ formData, companyData }: DefaultPDFProps) => {
   );
 };
 
-// Preview component
-export default function DefaultPDF({ formData, companyData }: DefaultPDFProps) {
+// Preview component with original interface
+export default function DefaultPDF({
+  formData,
+  companyData,
+  flages,
+}: DefaultPDFProps) {
   if (!formData || !companyData) {
     return null;
   }
@@ -282,7 +306,11 @@ export default function DefaultPDF({ formData, companyData }: DefaultPDFProps) {
       <div className="max-w-2xl mx-auto my-10">
         <div className="w-full h-[600px]">
           <PDFViewer width="100%" height="100%">
-            <InvoicePDF formData={formData} companyData={companyData} />
+            <InvoicePDF
+              formData={formData}
+              companyData={companyData}
+              flages={flages}
+            />
           </PDFViewer>
         </div>
       </div>
@@ -299,130 +327,193 @@ export default function DefaultPDF({ formData, companyData }: DefaultPDFProps) {
 
 const styles = StyleSheet.create({
   page: {
-    backgroundColor: "#fff",
+    flexDirection: "column",
+    backgroundColor: "#ffffff",
     padding: 0,
-    fontSize: 10,
     fontFamily: "Helvetica",
-    color: "#262626",
+  },
+  header: {
     flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#000000",
+    paddingBottom: 10,
   },
-  sidebar: {
-    width: "33%",
-    height: "100%",
-    backgroundColor: "rgba(230, 230, 230, 1)",
-    padding: 20,
-    paddingLeft: 25,
-  },
-  mainContent: {
-    width: "70%",
-    padding: "20px 10px",
-  },
-  logo: {
-    width: 170,
-    objectFit: "contain",
-    marginBottom: 8,
-  },
-  companyName: {
-    fontSize: 14,
-    marginBottom: 5,
-  },
-
-  sidebarSectionInvoiceDetails: {
-    marginVertical: 10,
-    paddingLeft: 6,
+  leftHeader: {
+    flex: 1,
+    paddingLeft: 20,
     paddingTop: 20,
   },
-  sidebarSectionCompanyPAN: {
-    paddingVertical: 20,
-
-    marginTop: 20,
-    paddingLeft: 6,
+  rightHeader: {
+    flex: 1,
+    alignItems: "flex-end",
+    paddingRight: 20,
+    paddingTop: 20,
   },
-  sidebarSectionBankDetails: {
-    paddingVertical: 20,
-
-    paddingLeft: 6,
+  companyName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
   },
-  sidebarSectionEmail: {
-    paddingVertical: 20,
-
-    paddingLeft: 6,
-  },
-  sidebarSectionAddress: {
-    paddingVertical: 15,
-
-    paddingLeft: 6,
-  },
-
-  sidebarLabel: {
-    color: "#666",
-    marginTop: 6,
-  },
-  sidebarValue: {
+  addressLine: {
     fontSize: 10,
-    marginVertical: 2,
     marginBottom: 2,
   },
   invoiceTitle: {
     fontSize: 24,
-    marginBottom: 40,
-    textAlign: "right",
+    fontWeight: "bold",
   },
-  clientSection: {
-    height: 135,
-    marginTop: 20,
-
-    display: "flex",
-    justifyContent: "center",
-  },
-  table: {
-    width: "100%",
-    marginTop: 5,
-  },
-  tableHeader: {
-    backgroundColor: "#f9f9f9",
+  invoiceDetails: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    padding: "8px 0",
+    borderBottomColor: "#000000",
+    paddingBottom: 10,
+  },
+  leftDetails: {
+    flex: 1,
+  },
+  rightDetails: {
+    marginTop: 8,
+    flexDirection: "column",
+  },
+  detailRow: {
+    flexDirection: "row",
+    marginBottom: 1,
+  },
+  detailLabel: {
+    fontSize: 10,
+    fontWeight: "bold",
+    width: "auto",
+  },
+  detailValue: {
+    fontSize: 10,
+  },
+  customerSection: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#000000",
+    paddingBottom: 10,
+    paddingTop: 10,
+    paddingLeft: 20,
+  },
+  customerHeader: {
+    width: 30,
+  },
+  customerLabel: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  customerDetails: {
+    flex: 1,
+  },
+  customerName: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  customerAddressLine: {
+    fontSize: 10,
+    marginBottom: 2,
+  },
+  table: {
+    marginLeft: 20,
+    marginRight: 20,
+    marginTop: 10,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#000000",
+    backgroundColor: "#f5f5f5",
+  },
+  tableColumnSmall: {
+    width: "10%",
+    padding: 5,
+    borderRightWidth: 1,
+    borderRightColor: "#000000",
+  },
+  tableColumnLarge: {
+    width: "60%",
+    padding: 5,
+    borderRightWidth: 1,
+    borderRightColor: "#000000",
+  },
+  tableColumnMedium: {
+    width: "30%",
+    padding: 5,
+  },
+  tableHeaderText: {
+    fontSize: 10,
+    fontWeight: "bold",
   },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
-    padding: "8px 0",
   },
-  descriptionCol: {
-    flex: 2,
-    paddingLeft: 8,
+  tableCell: {
+    fontSize: 10,
+    padding: 5,
   },
-  amountCol: {
-    flex: 1,
+  tableCellAmount: {
+    fontSize: 10,
+    padding: 5,
     textAlign: "right",
-    paddingRight: 8,
   },
-  total: {
-    textAlign: "left",
-    paddingRight: 8,
-    marginLeft: 8,
+  totalRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#000000",
+    marginTop: 5,
   },
-  totalInWords: {
-    marginTop: 2,
-    fontSize: 9,
+  totalLabelContainer: {
+    width: "70%",
+    padding: 5,
+    alignItems: "flex-end",
+  },
+  totalAmountContainer: {
+    width: "30%",
+    padding: 5,
+  },
+  totalLabel: {
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  totalAmount: {
+    fontSize: 10,
+    fontWeight: "bold",
+    textAlign: "right",
+  },
+  amountInWordsRow: {
+    padding: 10,
+  },
+  amountInWords: {
+    fontSize: 10,
     fontStyle: "italic",
-    color: "#666",
   },
-  signature: {
+  bankDetails: {
     position: "absolute",
-    bottom: 40,
-    right: 35,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 130,
-    borderTopColor: "#666",
+    bottom: "52%",
+
+    left: 20,
+  },
+  bankDetailsText: {
+    fontSize: 10,
+    marginBottom: 2,
+  },
+  signatureSection: {
+    position: "absolute",
+    bottom: "52%",
+    right: 50,
+  },
+  signatureContainer: {
     borderTopWidth: 1,
-    paddingRight: 8,
-    paddingTop: 8,
+    borderTopColor: "#000000",
+    width: 150,
+    alignItems: "center",
+    paddingTop: 5,
+  },
+  signatureName: {
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });
