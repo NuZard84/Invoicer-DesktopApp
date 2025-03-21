@@ -12,7 +12,6 @@ const Template: React.FC = () => {
     companyAddress: "",
     gstNo: "",
     companyLogo: null as string | null,
-    transactionType: "",
     panNo: "",
     bankName: "",
     accountNo: "",
@@ -106,17 +105,25 @@ const Template: React.FC = () => {
   const handleReset = () => {
     if (!company) return;
     const stored = localStorage.getItem("userTemplateData");
-    const parsed = stored ? JSON.parse(stored) : [];
-    const foundIndex = parsed.findIndex((item: any) => item[company]);
+    if (!stored) return;
 
-    const resetData = {
+    let parsed = JSON.parse(stored);
+    // Filter out the current company
+    parsed = parsed.filter(
+      (item: any) => item.companyName?.toLowerCase() !== company.toLowerCase()
+    );
+
+    // Save the updated array back to localStorage
+    localStorage.setItem("userTemplateData", JSON.stringify(parsed));
+
+    // Reset local state
+    setFormData({
       name: "",
       companyName: "",
       companyTitle: "",
       companyAddress: "",
       gstNo: "",
       companyLogo: null,
-      transactionType: "",
       panNo: "",
       bankName: "",
       accountNo: "",
@@ -124,18 +131,11 @@ const Template: React.FC = () => {
       email: "",
       pdfSavePath: "",
       isTemplateFilled: false,
-    };
-
-    if (foundIndex !== -1) {
-      parsed[foundIndex][company] = resetData;
-    } else {
-      parsed.push({ [company]: resetData });
-    }
-
-    localStorage.setItem("userTemplateData", JSON.stringify(parsed));
-    setFormData(resetData);
+    });
     setFileName(null);
     setIsTemplateFilled(false);
+
+    alert("Company information has been reset successfully.");
   };
 
   return (
@@ -179,10 +179,6 @@ const Template: React.FC = () => {
             {formData.gstNo}
           </p>
           <p className="text-lg">
-            <strong>Transaction Type: </strong>
-            {formData.transactionType}
-          </p>
-          <p className="text-lg">
             <strong>PAN No: </strong>
             {formData.panNo}
           </p>
@@ -212,7 +208,7 @@ const Template: React.FC = () => {
           <div className="flex gap-4">
             <button
               onClick={handleReset}
-              className="bg-red-600 self-start px-3 py-2 rounded-lg text-white hover:bg-red-500 mt-2"
+              className="bg-red-600 self-start px-3 py-2 rounded-lg text-white hover:bg-red-500 mt-2 transition-colors"
             >
               Reset Information
             </button>
@@ -283,45 +279,6 @@ const Template: React.FC = () => {
               onChange={handleInputChange}
               className="dark:bg-slate-600 bg-white rounded-md w-[65%] pl-2 py-1 border dark:border-0"
             />
-          </div>
-          <div className="gap-2 flex flex-col">
-            <label className="font-medium">Transaction Type:</label>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center w-[65%] rounded-lg overflow-hidden border dark:border-slate-600">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      transactionType: "online",
-                    }))
-                  }
-                  className={`flex-1 py-2 px-4 text-center transition-colors border-r dark:border-slate-600 ${
-                    formData.transactionType === "online"
-                      ? "bg-dp dark:bg-mp-dark text-white border-2 border-dp dark:border-mp-dark"
-                      : "bg-white dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  Online
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      transactionType: "cheque",
-                    }))
-                  }
-                  className={`flex-1 py-2 px-4 text-center transition-colors ${
-                    formData.transactionType === "cheque"
-                      ? "bg-dp dark:bg-mp-dark text-white border-2 border-dp dark:border-mp-dark"
-                      : "bg-white dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  Cheque
-                </button>
-              </div>
-            </div>
           </div>
           <div className="gap-2 flex flex-col">
             <label htmlFor="panNo" className="font-medium">
@@ -407,7 +364,7 @@ const Template: React.FC = () => {
             />
             <label
               htmlFor="company-logo"
-              className="cursor-pointer bg-dp text-white px-4 py-1 rounded-md w-fit hover:bg-mp dark:bg-mp-dark hover:dark:bg-mp transition"
+              className="cursor-pointer bg-mp text-white px-4 py-1 rounded-md w-fit hover:bg-mp-dark dark:bg-dp hover:dark:bg-mp transition-colors"
             >
               Choose File
             </label>
@@ -421,7 +378,7 @@ const Template: React.FC = () => {
             <button
               type="button"
               onClick={handleSelectPdfPath}
-              className="bg-blue-500 text-white px-4 py-2 rounded-md w-fit"
+              className="bg-mp text-white px-4 py-2 rounded-md w-fit hover:bg-mp-dark dark:bg-dp hover:dark:bg-mp transition-colors"
             >
               {formData.pdfSavePath ? "Change PDF Path" : "Select PDF Path"}
             </button>
@@ -433,7 +390,7 @@ const Template: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="dark:bg-mp-dark self-start bg-dp px-3 py-2 rounded-lg text-white hover:dark:bg-mp hover:bg-mp"
+            className="dark:bg-dp bg-mp text-white px-4 py-2 rounded-lg hover:dark:bg-mp hover:bg-mp-dark transition-colors"
           >
             Save Information
           </button>

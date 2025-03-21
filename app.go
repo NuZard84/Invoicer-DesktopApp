@@ -25,8 +25,9 @@ type Invoice struct {
 	CreatedAt       time.Time `json:"createdAt"`
 	IsPaid          bool      `json:"isPaid"`
 	CompanyName     string    `json:"companyName"`
-	PaidAmount      float64   `json:"paidAmount"` // New field: actual paid amount
-	TDSAmount       float64   `json:"tdsAmount"`  // New field: TDS amount
+	PaidAmount      float64   `json:"paidAmount"`      // New field: actual paid amount
+	TDSAmount       float64   `json:"tdsAmount"`       // New field: TDS amount
+	TransactionType string    `json:"transactionType"` // Transaction type (online/cheque)
 }
 
 // InvoiceData is a subset of Invoice for API returns.
@@ -48,6 +49,7 @@ type InvoiceInput struct {
 	CustomerAddress string  `json:"customerAddress"`
 	Items           []Item  `json:"items"`
 	Total           float64 `json:"total"`
+	TransactionType string  `json:"transactionType"`
 }
 
 // Item represents an individual line item on an invoice.
@@ -58,17 +60,16 @@ type Item struct {
 
 // CompanyInfo stores company-specific information.
 type CompanyInfo struct {
-	Name            string `json:"name"`
-	CompanyName     string `json:"companyName"`
-	CompanyAddress  string `json:"companyAddress"`
-	GstNo           string `json:"gstNo"`
-	TransactionType string `json:"transactionType"`
-	PanNo           string `json:"panNo"`
-	BankName        string `json:"bankName"`
-	AccountNo       string `json:"accountNo"`
-	Ifsc            string `json:"ifsc"`
-	Email           string `json:"email"`
-	PDFSavePath     string `json:"pdfSavePath"` // New field for custom PDF save path
+	Name           string `json:"name"`
+	CompanyName    string `json:"companyName"`
+	CompanyAddress string `json:"companyAddress"`
+	GstNo          string `json:"gstNo"`
+	PanNo          string `json:"panNo"`
+	BankName       string `json:"bankName"`
+	AccountNo      string `json:"accountNo"`
+	Ifsc           string `json:"ifsc"`
+	Email          string `json:"email"`
+	PDFSavePath    string `json:"pdfSavePath"` // New field for custom PDF save path
 }
 
 // App holds the application state.
@@ -143,9 +144,37 @@ func (a *App) saveCompanyData(company string) error {
 	return nil
 }
 
+// IsInvoiceNumberUnique checks if an invoice number is unique for a company
+func (a *App) IsInvoiceNumberUnique(company string, invoiceNo string) (bool, error) {
+	company = strings.ToLower(company)
+	invoices, ok := a.companies[company]
+	if !ok {
+		return true, nil // No invoices for this company yet
+	}
+
+	for _, inv := range invoices {
+		if inv.InvoiceNo == invoiceNo {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // AddInvoice accepts InvoiceInput from the frontend, converts it to a full Invoice.
 func (a *App) AddInvoice(company string, input InvoiceInput) error {
 	company = strings.ToLower(company)
+
+	// Check if invoice number already exists
+	if input.InvoiceNo != "" {
+		isUnique, err := a.IsInvoiceNumberUnique(company, input.InvoiceNo)
+		if err != nil {
+			return err
+		}
+		if !isUnique {
+			return fmt.Errorf("invoice number %s already exists for company %s", input.InvoiceNo, company)
+		}
+	}
+
 	invoice := Invoice{
 		InvoiceNo:       input.InvoiceNo,
 		CustomerName:    input.CustomerName,
@@ -157,6 +186,7 @@ func (a *App) AddInvoice(company string, input InvoiceInput) error {
 		CompanyName:     company,
 		PaidAmount:      input.Total,
 		TDSAmount:       0,
+		TransactionType: input.TransactionType,
 	}
 
 	// Fiscal year logic (example)
@@ -407,4 +437,39 @@ func (a *App) GetCompanyPDFSavePath(company string) (string, error) {
 		return info.PDFSavePath, nil
 	}
 	return "", fmt.Errorf("company info not found for: %s", company)
+}
+
+// GeneratePDFFromInvoice generates a PDF for an existing invoice
+func (a *App) GeneratePDFFromInvoice(company string, invoiceNo string, pdfBase64 string) error {
+	return a.SaveInvoicePDF(company, invoiceNo, pdfBase64)
+}
+
+// UpdateInvoice updates an existing invoice with new data
+func (a *App) UpdateInvoice(company string, invoiceNo string, input InvoiceInput) error {
+	company = strings.ToLower(company)
+	invoices, ok := a.companies[company]
+	if !ok {
+		return fmt.Errorf("company data not found for: %s", company)
+	}
+
+	// Verify the invoice exists
+	var existingInvoiceIndex = -1
+	for i, inv := range invoices {
+		if inv.InvoiceNo == invoiceNo {
+			existingInvoiceIndex = i
+			break
+		}
+	}
+
+	if existingInvoiceIndex == -1 {
+		return fmt.Errorf("invoice not found: %s", invoiceNo)
+	}
+
+	// Update the invoice with new data
+	a.companies[company][existingInvoiceIndex].CustomerName = input.CustomerName
+	a.companies[company][existingInvoiceIndex].CustomerAddress = input.CustomerAddress
+	a.companies[company][existingInvoiceIndex].Items = input.Items
+	a.companies[company][existingInvoiceIndex].Total = input.Total
+
+	return a.saveCompanyData(company)
 }

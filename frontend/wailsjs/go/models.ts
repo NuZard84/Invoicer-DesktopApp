@@ -26,6 +26,7 @@ export namespace main {
 	    companyName: string;
 	    paidAmount: number;
 	    tdsAmount: number;
+	    transactionType: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Invoice(source);
@@ -43,6 +44,7 @@ export namespace main {
 	        this.companyName = source["companyName"];
 	        this.paidAmount = source["paidAmount"];
 	        this.tdsAmount = source["tdsAmount"];
+	        this.transactionType = source["transactionType"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -113,6 +115,7 @@ export namespace main {
 	    customerAddress: string;
 	    items: Item[];
 	    total: number;
+	    transactionType: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new InvoiceInput(source);
@@ -126,6 +129,7 @@ export namespace main {
 	        this.customerAddress = source["customerAddress"];
 	        this.items = this.convertValues(source["items"], Item);
 	        this.total = source["total"];
+	        this.transactionType = source["transactionType"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

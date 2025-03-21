@@ -14,6 +14,10 @@ export function GeneratePDF(arg1, arg2) {
   return window['go']['main']['App']['GeneratePDF'](arg1, arg2);
 }
 
+export function GeneratePDFFromInvoice(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GeneratePDFFromInvoice'](arg1, arg2, arg3);
+}
+
 export function GetCompanyPDFSavePath(arg1) {
   return window['go']['main']['App']['GetCompanyPDFSavePath'](arg1);
 }
@@ -26,6 +30,10 @@ export function GetInvoices(arg1) {
   return window['go']['main']['App']['GetInvoices'](arg1);
 }
 
+export function IsInvoiceNumberUnique(arg1, arg2) {
+  return window['go']['main']['App']['IsInvoiceNumberUnique'](arg1, arg2);
+}
+
 export function SaveInvoicePDF(arg1, arg2, arg3) {
   return window['go']['main']['App']['SaveInvoicePDF'](arg1, arg2, arg3);
 }
@@ -36,6 +44,10 @@ export function SetCompanyPDFSavePath(arg1, arg2) {
 
 export function ToggleInvoicePayment(arg1, arg2) {
   return window['go']['main']['App']['ToggleInvoicePayment'](arg1, arg2);
+}
+
+export function UpdateInvoice(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdateInvoice'](arg1, arg2, arg3);
 }
 
 export function UpdateInvoiceAmounts(arg1, arg2, arg3, arg4) {

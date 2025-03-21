@@ -4,13 +4,20 @@ import {
   GetInvoiceDetail,
   ToggleInvoicePayment,
   UpdateInvoiceAmounts,
+  GeneratePDFFromInvoice,
+  SaveInvoicePDF,
+  ExportCSV,
 } from "../../wailsjs/go/main/App";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { Edit, FileText } from "lucide-react";
 
 const Billings: React.FC = () => {
   const { company } = useParams<{ company: string | undefined }>();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [companyString, setCompanyString] = useState<string>("");
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (company) {
@@ -83,6 +90,46 @@ const Billings: React.FC = () => {
     }
   };
 
+  const handleEditInvoice = (invoiceNo: string) => {
+    navigate(`/company/${company}/edit-invoice/${invoiceNo}`);
+  };
+
+  const handleGeneratePDF = async (invoiceNo: string) => {
+    try {
+      setIsGeneratingPDF(invoiceNo);
+
+      // First get the full invoice details
+      const invoiceDetail = await GetInvoiceDetail(companyString, invoiceNo);
+      if (!invoiceDetail) {
+        throw new Error("Could not find invoice details");
+      }
+
+      // Navigate to the edit invoice page with a query parameter that indicates we want to generate a PDF
+      navigate(
+        `/company/${company}/edit-invoice/${invoiceNo}?generatePDF=true`
+      );
+
+      setIsGeneratingPDF(null);
+    } catch (error) {
+      console.error("Error preparing to generate PDF:", error);
+      alert("Failed to prepare PDF generation");
+      setIsGeneratingPDF(null);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      const csvPath = await ExportCSV(companyString);
+      alert(`CSV exported successfully to: ${csvPath}`);
+      setIsExporting(false);
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      alert("Failed to export CSV");
+      setIsExporting(false);
+    }
+  };
+
   // Calculate totals
   const totalPaidAmount = invoices.reduce(
     (acc, inv) => acc + (inv.paidAmount || 0),
@@ -123,10 +170,15 @@ const Billings: React.FC = () => {
       </div>
       <h1 className="text-3xl mb-4">Billing History</h1>
       <button
-        onClick={() => {}}
-        className="bg-mp hover:bg-mp-dark px-3 py-2 text-white rounded-md mb-4 transition-colors"
+        onClick={handleExportCSV}
+        disabled={isExporting || invoices.length === 0}
+        className={`bg-mp hover:bg-mp-dark px-3 py-2 text-white rounded-md mb-4 transition-colors ${
+          isExporting || invoices.length === 0
+            ? "opacity-50 cursor-not-allowed"
+            : ""
+        }`}
       >
-        Export CSV
+        {isExporting ? "Exporting..." : "Export CSV"}
       </button>
       <div className="relative">
         <table className="min-w-full bg-bg dark:bg-bg-dark border border-gf/30 dark:border-gf-dark/30">
@@ -209,22 +261,39 @@ const Billings: React.FC = () => {
                   {(inv.total - inv.paidAmount).toFixed(2)}
                 </td>
                 <td className="py-2 w-36 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  <button
-                    onClick={() => {
-                      updateInvoicePaymentStatus(company!, inv.invoiceNo);
-                    }}
-                    className={`${
-                      inv.isPaid
-                        ? "bg-green-200 dark:bg-green-800/30"
-                        : "bg-red-200 dark:bg-red-800/30"
-                    } ${
-                      inv.isPaid
-                        ? "text-green-700 dark:text-green-400"
-                        : "text-red-700 dark:text-red-400"
-                    } rounded-xl px-4 py-1 transition-colors`}
-                  >
-                    {inv.isPaid ? "paid" : "unpaid"}
-                  </button>
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={() => {
+                        updateInvoicePaymentStatus(company!, inv.invoiceNo);
+                      }}
+                      className={`${
+                        inv.isPaid
+                          ? "bg-green-200 dark:bg-green-800/30"
+                          : "bg-red-200 dark:bg-red-800/30"
+                      } ${
+                        inv.isPaid
+                          ? "text-green-700 dark:text-green-400"
+                          : "text-red-700 dark:text-red-400"
+                      } rounded-xl px-3 py-1 transition-colors`}
+                    >
+                      {inv.isPaid ? "paid" : "unpaid"}
+                    </button>
+                    <button
+                      onClick={() => handleEditInvoice(inv.invoiceNo)}
+                      className="bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors"
+                      title="Edit Invoice"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleGeneratePDF(inv.invoiceNo)}
+                      className="bg-purple-200 dark:bg-purple-800/30 text-purple-700 dark:text-purple-400 rounded-xl p-1 transition-colors"
+                      title="Generate PDF"
+                      disabled={isGeneratingPDF === inv.invoiceNo}
+                    >
+                      <FileText size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

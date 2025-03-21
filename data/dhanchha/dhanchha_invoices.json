@@ -14,7 +14,8 @@
     "isPaid": true,
     "companyName": "dhanchha",
     "paidAmount": 8000,
-    "tdsAmount": 2000
+    "tdsAmount": 2000,
+    "transactionType": ""
   },
   {
     "invoiceNo": "10002",
@@ -31,12 +32,13 @@
     "isPaid": true,
     "companyName": "dhanchha",
     "paidAmount": 150000,
-    "tdsAmount": 50000
+    "tdsAmount": 50000,
+    "transactionType": ""
   },
   {
     "invoiceNo": "10003",
-    "customerName": "Het Varasada 3",
-    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujaratt",
+    "customerName": "Het Varasada 78",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
     "items": [
       {
         "description": "Product 3",
@@ -48,7 +50,8 @@
     "isPaid": true,
     "companyName": "dhanchha",
     "paidAmount": 15000,
-    "tdsAmount": 5000
+    "tdsAmount": 5000,
+    "transactionType": ""
   },
   {
     "invoiceNo": "100003",
@@ -65,7 +68,8 @@
     "isPaid": true,
     "companyName": "dhanchha",
     "paidAmount": 10,
-    "tdsAmount": 9990
+    "tdsAmount": 9990,
+    "transactionType": ""
   },
   {
     "invoiceNo": "dsadsa",
@@ -86,6 +90,47 @@
     "isPaid": false,
     "companyName": "dhanchha",
     "paidAmount": 10000,
-    "tdsAmount": 1200
+    "tdsAmount": 1200,
+    "transactionType": ""
+  },
+  {
+    "invoiceNo": "10004",
+    "customerName": "Het Patel",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat 2",
+    "items": [
+      {
+        "description": "Product 0",
+        "amount": 12462
+      },
+      {
+        "description": "Product 1",
+        "amount": 145222
+      }
+    ],
+    "total": 157684,
+    "createdAt": "2025-03-21T21:19:03.1046365+05:30",
+    "isPaid": false,
+    "companyName": "dhanchha",
+    "paidAmount": 157684,
+    "tdsAmount": 0,
+    "transactionType": "cheque"
+  },
+  {
+    "invoiceNo": "10005",
+    "customerName": "Het Varasada",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
+    "items": [
+      {
+        "description": "dd",
+        "amount": 2222
+      }
+    ],
+    "total": 2222,
+    "createdAt": "2025-03-21T21:20:54.5871007+05:30",
+    "isPaid": false,
+    "companyName": "dhanchha",
+    "paidAmount": 2222,
+    "tdsAmount": 0,
+    "transactionType": "online"
   }
 ]

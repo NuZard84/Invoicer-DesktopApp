@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { Trash2, AlertCircle } from "lucide-react";
 import DefaultPDF from "./Templates/DefualtPDF";
 import DhanchhaPDF from "./Templates/DhanchhaPDF";
 import { InvoicePDF as DhanchhaPDFDoc } from "./Templates/DhanchhaPDF";
 import { InvoicePDF as DefaultPDFDoc } from "./Templates/DefualtPDF";
 import { pdf } from "@react-pdf/renderer";
 // Import the backend functions from your Wails bindings
-import { SaveInvoicePDF, AddInvoice } from "../../wailsjs/go/main/App";
+import {
+  SaveInvoicePDF,
+  AddInvoice,
+  GetInvoiceDetail,
+  UpdateInvoice,
+  GeneratePDFFromInvoice,
+} from "../../wailsjs/go/main/App";
 
 export interface CompanyInfo {
   name: string;
@@ -17,7 +23,6 @@ export interface CompanyInfo {
   companyLogo: string | null;
   invoiceNo: string;
   invoiceDate: string;
-  transactionType: string;
   panNo: string;
   bankName: string;
   accountNo: string;
@@ -38,7 +43,12 @@ export interface FormDataType {
 }
 
 const NewInvoice: React.FC = () => {
-  const { company } = useParams<{ company: string | undefined }>();
+  const { company, invoiceId } = useParams<{
+    company: string | undefined;
+    invoiceId: string | undefined;
+  }>();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState<FormDataType>({
     invoiceNo: "",
@@ -49,8 +59,11 @@ const NewInvoice: React.FC = () => {
   });
   const [isPanNo, setIsPanNo] = useState(true);
   const [isBankDetails, setIsBankDetails] = useState(true);
-
+  const [isEditing, setIsEditing] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyInfo | null>(null);
+  const [generatePDF, setGeneratePDF] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [transactionType, setTransactionType] = useState<string>("online");
 
   useEffect(() => {
     if (!company) return;
@@ -70,10 +83,62 @@ const NewInvoice: React.FC = () => {
     }
   }, [company]);
 
+  // Load invoice data if editing an existing invoice
+  useEffect(() => {
+    if (company && invoiceId) {
+      setIsEditing(true);
+      loadInvoiceData(company, invoiceId);
+    }
+  }, [company, invoiceId]);
+
+  useEffect(() => {
+    // Check if the generatePDF query parameter is present
+    const queryParams = new URLSearchParams(location.search);
+    if (queryParams.get("generatePDF") === "true") {
+      setGeneratePDF(true);
+    }
+  }, [location]);
+
+  const loadInvoiceData = async (company: string, invoiceId: string) => {
+    try {
+      const invoiceData = await GetInvoiceDetail(company, invoiceId);
+      if (invoiceData) {
+        // Format the items array to match the expected form structure
+        const formattedItems = invoiceData.items.map((item: any) => ({
+          description: item.description,
+          amount: item.amount.toString(),
+        }));
+
+        setFormData({
+          invoiceNo: invoiceData.invoiceNo,
+          // Format the date to YYYY-MM-DD for the date input
+          invoiceDate: new Date(invoiceData.createdAt)
+            .toISOString()
+            .split("T")[0],
+          customerName: invoiceData.customerName,
+          customerAddress: invoiceData.customerAddress,
+          items: formattedItems,
+        });
+
+        // Set transaction type if it exists in the invoice data
+        if (invoiceData.transactionType) {
+          setTransactionType(invoiceData.transactionType);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading invoice data:", error);
+      alert("Failed to load invoice data");
+    }
+  };
+
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { id, value } = event.target;
+    // Clear error message when user changes the invoice number
+    if (id === "invoiceNo") {
+      setErrorMessage(null);
+    }
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
@@ -108,6 +173,7 @@ const NewInvoice: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setErrorMessage(null);
 
     if (!company) {
       alert("Company information is missing.");
@@ -125,52 +191,112 @@ const NewInvoice: React.FC = () => {
         amount: parseFloat(item.amount) || 0,
       })),
       total,
+      transactionType,
       convertValues: (a: any, classs: any, asMap?: boolean) => a,
     };
 
     try {
-      // Use the correct PDF component based on company name
-      const PDFComponent = isDhanchhaTemplate ? (
-        <DhanchhaPDFDoc formData={formData} companyData={companyData!} />
-      ) : (
-        <DefaultPDFDoc
-          formData={formData}
-          companyData={companyData!}
-          flages={{
-            isPanNo: isPanNo,
-            isBankDetails: isBankDetails,
-          }}
-        />
-      );
+      if (isEditing) {
+        // If editing existing invoice, just update the data
+        await UpdateInvoice(company, formData.invoiceNo, invoiceData);
 
-      console.log(PDFComponent);
-      // Generate the PDF blob using react-pdf
-      const blob = await pdf(PDFComponent)?.toBlob();
-      if (!blob) {
-        throw new Error("Failed to generate PDF blob");
-      }
-
-      // Convert blob to base64 string
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = reader.result?.toString();
-        if (!base64data) {
-          throw new Error("Failed to convert blob to base64");
+        // Only generate PDF if requested
+        if (generatePDF) {
+          await generateAndSavePDF(invoiceData);
+        } else {
+          alert("Invoice updated successfully!");
+          navigate(`/company/${company}/billings`);
         }
-        // Remove the "data:application/pdf;base64," prefix if present
-        const base64Prefix = "data:application/pdf;base64,";
-        const pdfBase64 = base64data.startsWith(base64Prefix)
-          ? base64data.substring(base64Prefix.length)
-          : base64data;
-
-        // Call backend function to save the PDF file
-        await SaveInvoicePDF(company, formData.invoiceNo, pdfBase64);
-
-        // Call backend function to add the invoice data
+      } else {
+        // If creating new invoice, add the data
         await AddInvoice(company, invoiceData);
 
-        alert("Invoice created and PDF saved successfully!");
+        // Only generate PDF if requested
+        if (generatePDF) {
+          await generateAndSavePDF(invoiceData);
+        } else {
+          alert("Invoice created successfully!");
+          setFormData({
+            invoiceNo: "",
+            invoiceDate: "",
+            customerName: "",
+            customerAddress: "",
+            items: [{ description: "", amount: "" }],
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error("Error handling invoice:", err);
+
+      // Check for duplicate invoice number error
+      if (err.message && err.message.includes("already exists")) {
+        setErrorMessage(
+          "This invoice number already exists. Please use a different one."
+        );
+      } else {
+        alert("Failed to process invoice: " + err.message);
+      }
+    }
+  };
+
+  const generateAndSavePDF = async (invoiceData: any) => {
+    // Pass transaction type to the PDF component
+    const pdfData = {
+      ...invoiceData,
+      transactionType,
+    };
+
+    // Use the correct PDF component based on company name
+    const PDFComponent = isDhanchhaTemplate ? (
+      <DhanchhaPDFDoc
+        formData={formData}
+        companyData={{ ...companyData!, transactionType }}
+      />
+    ) : (
+      <DefaultPDFDoc
+        formData={formData}
+        companyData={{ ...companyData!, transactionType }}
+        flages={{
+          isPanNo: isPanNo,
+          isBankDetails: isBankDetails,
+        }}
+      />
+    );
+
+    // Generate the PDF blob using react-pdf
+    const blob = await pdf(PDFComponent)?.toBlob();
+    if (!blob) {
+      throw new Error("Failed to generate PDF blob");
+    }
+
+    // Convert blob to base64 string
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = async () => {
+      const base64data = reader.result?.toString();
+      if (!base64data) {
+        throw new Error("Failed to convert blob to base64");
+      }
+      // Remove the "data:application/pdf;base64," prefix if present
+      const base64Prefix = "data:application/pdf;base64,";
+      const pdfBase64 = base64data.startsWith(base64Prefix)
+        ? base64data.substring(base64Prefix.length)
+        : base64data;
+
+      // Call backend function to save the PDF file
+      if (isEditing) {
+        await GeneratePDFFromInvoice(company!, formData.invoiceNo, pdfBase64);
+        alert("Invoice updated and PDF generated successfully!");
+      } else {
+        await SaveInvoicePDF(company!, formData.invoiceNo, pdfBase64);
+        alert("Invoice created and PDF generated successfully!");
+      }
+
+      if (isEditing) {
+        // Navigate back to billings page after successful edit
+        navigate(`/company/${company}/billings`);
+      } else {
+        // Reset form for new invoice creation
         setFormData({
           invoiceNo: "",
           invoiceDate: "",
@@ -178,11 +304,8 @@ const NewInvoice: React.FC = () => {
           customerAddress: "",
           items: [{ description: "", amount: "" }],
         });
-      };
-    } catch (err) {
-      console.error("Error creating invoice:", err);
-      alert("Failed to create invoice.");
-    }
+      }
+    };
   };
 
   // Toggle switch component
@@ -215,7 +338,9 @@ const NewInvoice: React.FC = () => {
 
   return (
     <div className="flex flex-col p-4">
-      <h1 className="text-dp text-3xl py-10">New Invoice</h1>
+      <h1 className="text-dp text-3xl py-10">
+        {isEditing ? "Edit Invoice" : "New Invoice"}
+      </h1>
       {localStorage.getItem("userTemplateData")?.length !== 0 && companyData ? (
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Form Container */}
@@ -229,15 +354,27 @@ const NewInvoice: React.FC = () => {
                 <label htmlFor="invoiceNo" className="font-medium">
                   Invoice No:
                 </label>
-                <input
-                  id="invoiceNo"
-                  type="text"
-                  placeholder="Enter invoice number"
-                  className="dark:bg-[#464a56] bg-white rounded-md w-2/3 pl-2 py-1 border dark:border-0"
-                  value={formData.invoiceNo}
-                  required
-                  onChange={handleInputChange}
-                />
+                <div className="flex flex-col w-2/3">
+                  <input
+                    id="invoiceNo"
+                    type="text"
+                    placeholder="Enter invoice number"
+                    className={`dark:bg-[#464a56] bg-white rounded-md w-full pl-2 py-1 border ${
+                      errorMessage
+                        ? "border-red-500 dark:border-red-500"
+                        : "dark:border-0"
+                    }`}
+                    value={formData.invoiceNo}
+                    required
+                    onChange={handleInputChange}
+                    readOnly={isEditing} // Make read-only when editing
+                  />
+                  {errorMessage && (
+                    <div className="flex items-center text-red-500 mt-1 text-sm">
+                      <AlertCircle size={14} className="mr-1" /> {errorMessage}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="invoiceDate" className="font-medium">
@@ -251,6 +388,36 @@ const NewInvoice: React.FC = () => {
                   required
                   onChange={handleInputChange}
                 />
+              </div>
+              {/* Transaction Type Selection */}
+              <div className="flex flex-col gap-2 mt-4">
+                <label className="font-medium">Transaction Type:</label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center w-2/3 rounded-lg overflow-hidden border dark:border-slate-600">
+                    <button
+                      type="button"
+                      onClick={() => setTransactionType("online")}
+                      className={`flex-1 py-2 px-4 text-center transition-colors border-r dark:border-slate-600 ${
+                        transactionType === "online"
+                          ? "bg-dp dark:bg-mp-dark text-white"
+                          : "bg-white dark:bg-[#464a56] hover:bg-gray-100 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      Online
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTransactionType("cheque")}
+                      className={`flex-1 py-2 px-4 text-center transition-colors ${
+                        transactionType === "cheque"
+                          ? "bg-dp dark:bg-mp-dark text-white"
+                          : "bg-white dark:bg-[#464a56] hover:bg-gray-100 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      Cheque
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="mb-4">
@@ -327,7 +494,7 @@ const NewInvoice: React.FC = () => {
                 type="button"
                 disabled={formData.items.length <= 0}
                 onClick={addItem}
-                className="mt-2 px-3 py-1 bg-dp dark:bg-mp-dark text-white rounded-md hover:bg-mp hover:dark:bg-mp"
+                className="mt-2 px-3 py-1 bg-mp text-white rounded-md dark:bg-dp hover:bg-mp-dark hover:dark:bg-mp transition-colors"
               >
                 + Add Item
               </button>
@@ -338,8 +505,29 @@ const NewInvoice: React.FC = () => {
               </div>
             </div>
 
-            {/* PDF Content Options Section - Only show for non-Dhanchha templates */}
-            {!isDhanchhaTemplate && (
+            {/* PDF Generation Option */}
+            <div className="mb-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="generatePDF"
+                  checked={generatePDF}
+                  onChange={(e) => setGeneratePDF(e.target.checked)}
+                  className="w-4 h-4 text-dp dark:text-mp-dark rounded"
+                />
+                <label htmlFor="generatePDF" className="font-medium">
+                  {isEditing ? "Generate updated PDF" : "Generate PDF now"}
+                </label>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                {isEditing
+                  ? "If unchecked, only the invoice data will be updated without generating a new PDF."
+                  : "If unchecked, only the invoice data will be saved. You can generate the PDF later from the Billings page."}
+              </p>
+            </div>
+
+            {/* PDF Content Options Section - Only show for non-Dhanchha templates and when generate PDF is checked */}
+            {!isDhanchhaTemplate && generatePDF && (
               <div className="mb-4">
                 <h2 className="text-xl text-dp mb-4">PDF Content Options</h2>
                 <div className="flex flex-col space-y-4">
@@ -357,23 +545,38 @@ const NewInvoice: React.FC = () => {
               </div>
             )}
 
-            <button
-              type="submit"
-              className="dark:bg-mp-dark self-start bg-dp px-4 py-2 rounded-lg text-white hover:dark:bg-mp hover:bg-mp"
-            >
-              Create Invoice
-            </button>
+            <div className="flex space-x-4">
+              <button
+                type="submit"
+                className="dark:bg-dp bg-mp text-white px-4 py-2 rounded-lg hover:dark:bg-mp hover:bg-mp-dark transition-colors"
+              >
+                {isEditing ? "Update Invoice" : "Create Invoice"}
+              </button>
+
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/company/${company}/billings`)}
+                  className="bg-gray-500 px-4 py-2 rounded-lg text-white hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </form>
 
-          {/* PDF Preview Container */}
-          {companyData ? (
+          {/* PDF Preview Container - Only show when generate PDF is checked */}
+          {companyData && generatePDF ? (
             <div className="w-full lg:w-1/2 border dark:border-0 dark:bg-[#464a56] bg-gray-100 rounded-lg p-4 h-full">
               {isDhanchhaTemplate ? (
-                <DhanchhaPDF formData={formData} companyData={companyData} />
+                <DhanchhaPDF
+                  formData={formData}
+                  companyData={{ ...companyData, transactionType }}
+                />
               ) : (
                 <DefaultPDF
                   formData={formData}
-                  companyData={companyData}
+                  companyData={{ ...companyData, transactionType }}
                   flages={{
                     isPanNo: isPanNo,
                     isBankDetails: isBankDetails,
@@ -383,13 +586,17 @@ const NewInvoice: React.FC = () => {
             </div>
           ) : (
             <div className="w-full lg:w-1/2 flex items-center justify-center">
-              <p>Loading preview...</p>
+              {generatePDF ? (
+                <p>Loading preview...</p>
+              ) : (
+                <p className="text-gray-500">PDF preview disabled</p>
+              )}
             </div>
           )}
         </div>
       ) : (
         <div className="py-10 px-4 flex flex-col gap-6">
-          <h1 className="text-3xl">
+          <h1 className="text-dp text-3xl">
             <span className="text-dp">Sorry!</span>
           </h1>
           <p className="text-lg">

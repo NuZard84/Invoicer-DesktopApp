@@ -27,6 +27,18 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
 
             {/* Dynamic routes: /:company/... */}
+            <Route
+              path="/company/:company/new-invoice"
+              element={<NewInvoice />}
+            />
+            <Route
+              path="/company/:company/edit-invoice/:invoiceId"
+              element={<NewInvoice />}
+            />
+            <Route path="/company/:company/billings" element={<Billings />} />
+            <Route path="/company/:company/template" element={<Template />} />
+
+            {/* Legacy routes - keeping for backward compatibility */}
             <Route path="/:company/new-template" element={<NewInvoice />} />
             <Route path="/:company/billings" element={<Billings />} />
             <Route path="/:company/template" element={<Template />} />

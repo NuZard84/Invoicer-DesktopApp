@@ -40,7 +40,7 @@ const Navbar: React.FC = () => {
   const subRoutes = [
     {
       label: "New Invoice",
-      path: "new-template",
+      path: "new-invoice",
       icon: <Plus size={18} />,
     },
     {
@@ -110,7 +110,7 @@ const Navbar: React.FC = () => {
                     className="overflow-hidden ml-4 mt-2 flex flex-col space-y-2"
                   >
                     {subRoutes.map((route) => {
-                      const fullPath = `/${company.name.toLowerCase()}/${
+                      const fullPath = `/company/${company.name.toLowerCase()}/${
                         route.path
                       }`;
                       return (
