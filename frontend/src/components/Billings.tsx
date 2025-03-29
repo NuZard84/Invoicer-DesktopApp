@@ -4,24 +4,41 @@ import {
   GetInvoiceDetail,
   ToggleInvoicePayment,
   UpdateInvoiceAmounts,
-  GeneratePDFFromInvoice,
-  SaveInvoicePDF,
   ExportCSV,
 } from "../../wailsjs/go/main/App";
 import { useParams, useNavigate } from "react-router-dom";
-import { Edit, FileText } from "lucide-react";
+import { FileText, Printer } from "lucide-react";
+import PrintButton from "./Templates/PrintButton";
 
 const Billings: React.FC = () => {
   const { company } = useParams<{ company: string | undefined }>();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [companyString, setCompanyString] = useState<string>("");
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState<string | null>(null);
+  const [isPrinting, setIsPrinting] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [companyData, setCompanyData] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (company) {
       setCompanyString(company);
+      // Load company data from localStorage
+      const stored = localStorage.getItem("userTemplateData");
+      if (stored) {
+        try {
+          const parsedData = JSON.parse(stored);
+          const foundData = parsedData.find(
+            (item: any) =>
+              item.companyName?.toLowerCase() === company.toLowerCase()
+          );
+          if (foundData) {
+            setCompanyData(foundData);
+          }
+        } catch (err) {
+          console.error("Error parsing company data:", err);
+        }
+      }
     }
   }, [company]);
 
@@ -30,17 +47,14 @@ const Billings: React.FC = () => {
       try {
         const res = await GetInvoices(companyString);
         setInvoices(res);
-        const res0 = await GetInvoiceDetail(companyString, res[0].invoiceNo);
-        console.log("get first invoice detail -->", res0);
-        console.log("Get Invoice --> ", res);
       } catch (error) {
         console.log(error);
       }
     };
-    if (invoices.length === 0) {
+    if (invoices.length === 0 && companyString) {
       fetchInvoiceData();
     }
-  }, [companyString]);
+  }, [companyString, invoices.length]);
 
   const updateInvoicePaymentStatus = async (
     company: string,
@@ -94,27 +108,50 @@ const Billings: React.FC = () => {
     navigate(`/company/${company}/edit-invoice/${invoiceNo}`);
   };
 
-  const handleGeneratePDF = async (invoiceNo: string) => {
-    try {
-      setIsGeneratingPDF(invoiceNo);
+  const handleViewPDF = (invoiceNo: string) => {
+    // Navigate to the edit invoice page with the PDF preview enabled
+    navigate(`/company/${company}/edit-invoice/${invoiceNo}?generatePDF=true`);
+  };
 
-      // First get the full invoice details
+  const handlePrintInvoice = async (invoiceNo: string) => {
+    try {
+      setIsPrinting(invoiceNo);
+
+      // Get the full invoice details
       const invoiceDetail = await GetInvoiceDetail(companyString, invoiceNo);
       if (!invoiceDetail) {
         throw new Error("Could not find invoice details");
       }
 
-      // Navigate to the edit invoice page with a query parameter that indicates we want to generate a PDF
-      navigate(
-        `/company/${company}/edit-invoice/${invoiceNo}?generatePDF=true`
-      );
+      // Format the invoice data for the PrintButton component
+      const formattedItems = invoiceDetail.items.map((item: any) => ({
+        description: item.description,
+        amount: item.amount.toString(),
+      }));
 
-      setIsGeneratingPDF(null);
+      const formattedInvoice = {
+        invoiceNo: invoiceDetail.invoiceNo,
+        invoiceDate: new Date(invoiceDetail.createdAt)
+          .toISOString()
+          .split("T")[0],
+        customerName: invoiceDetail.customerName,
+        customerAddress: invoiceDetail.customerAddress,
+        items: formattedItems,
+      };
+
+      setSelectedInvoice(formattedInvoice);
+
+      // PrintButton will automatically trigger the print dialog when it renders
     } catch (error) {
-      console.error("Error preparing to generate PDF:", error);
-      alert("Failed to prepare PDF generation");
-      setIsGeneratingPDF(null);
+      console.error("Error preparing to print invoice:", error);
+      alert("Failed to prepare invoice for printing");
+      setIsPrinting(null);
     }
+  };
+
+  const handlePrintComplete = () => {
+    setSelectedInvoice(null);
+    setIsPrinting(null);
   };
 
   const handleExportCSV = async () => {
@@ -145,11 +182,11 @@ const Billings: React.FC = () => {
   );
 
   const paidAmount = invoices
-    .filter((item, i) => item.isPaid === true)
+    .filter((item) => item.isPaid === true)
     .reduce((acc, inv) => acc + parseFloat(inv.total), 0);
 
   const unPaidAmount = invoices
-    .filter((item, i) => item.isPaid === false)
+    .filter((item) => item.isPaid === false)
     .reduce((acc, inv) => acc + parseFloat(inv.total), 0);
 
   return (
@@ -219,6 +256,7 @@ const Billings: React.FC = () => {
                     ? "bg-cbg dark:bg-cbg-dark"
                     : "bg-bg dark:bg-bg-dark"
                 }
+                onDoubleClick={() => handleEditInvoice(inv.invoiceNo)}
               >
                 <td className="w-24 border border-gf/30 dark:border-gf-dark/30 text-center">
                   {index + 1}
@@ -278,20 +316,20 @@ const Billings: React.FC = () => {
                     >
                       {inv.isPaid ? "paid" : "unpaid"}
                     </button>
-                    <button
-                      onClick={() => handleEditInvoice(inv.invoiceNo)}
-                      className="bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors"
-                      title="Edit Invoice"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleGeneratePDF(inv.invoiceNo)}
+                    {/* <button
+                      onClick={() => handleViewPDF(inv.invoiceNo)}
                       className="bg-purple-200 dark:bg-purple-800/30 text-purple-700 dark:text-purple-400 rounded-xl p-1 transition-colors"
-                      title="Generate PDF"
-                      disabled={isGeneratingPDF === inv.invoiceNo}
+                      title="View PDF"
                     >
                       <FileText size={16} />
+                    </button> */}
+                    <button
+                      onClick={() => handlePrintInvoice(inv.invoiceNo)}
+                      className="bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors"
+                      title="Print Invoice"
+                      disabled={isPrinting !== null}
+                    >
+                      <Printer size={16} />
                     </button>
                   </div>
                 </td>
@@ -310,19 +348,17 @@ const Billings: React.FC = () => {
           </tbody>
         </table>
         {/* Sticky Footer */}
-        <div className="sticky bottom-0 bg-lp dark:bg-lp-dark  border-gf/40 dark:border-gf-dark/40 flex">
+        <div className="sticky bottom-0 bg-lp dark:bg-lp-dark border-gf/40 dark:border-gf-dark/40 flex">
           <table className="min-w-full self-end">
             <tfoot>
               <tr className="text-mp-dark dark:text-white ">
-                <td className="w-[48.4%] flex items-center justify-center  "></td>
-                <td className="py-2  w-56 border border-gf/40 dark:border-gf-dark/40 text-center font-bold">
+                <td className="w-[48.4%] flex items-center justify-center"></td>
+                <td className="py-2 w-56 border border-gf/40 dark:border-gf-dark/40 text-center font-bold">
                   {totalAmount.toFixed(2)}
                 </td>
-
                 <td className="py-2 w-56 border border-gf/40 dark:border-gf-dark/40 text-center font-bold">
                   {totalPaidAmount.toFixed(2)}
                 </td>
-
                 <td className="py-2 w-56 border border-gf/40 dark:border-gf-dark/40 text-center font-bold">
                   {totalTDSAmount.toFixed(2)}
                 </td>
@@ -332,6 +368,18 @@ const Billings: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Hidden PrintButton component that will be triggered when selectedInvoice is set */}
+      {selectedInvoice && companyData && (
+        <div className="hidden">
+          <PrintButton
+            formData={selectedInvoice}
+            companyData={companyData}
+            flages={{ isPanNo: true, isBankDetails: true }}
+            onPrintComplete={handlePrintComplete}
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -18,7 +18,8 @@
     "isPaid": true,
     "companyName": "rachana",
     "paidAmount": 25200,
-    "tdsAmount": 0
+    "tdsAmount": 0,
+    "transactionType": ""
   },
   {
     "invoiceNo": "10001",
@@ -35,7 +36,8 @@
     "isPaid": false,
     "companyName": "rachana",
     "paidAmount": 1000,
-    "tdsAmount": 0
+    "tdsAmount": 0,
+    "transactionType": ""
   },
   {
     "invoiceNo": "D/24-25/003",
@@ -52,7 +54,8 @@
     "isPaid": true,
     "companyName": "rachana",
     "paidAmount": 10200,
-    "tdsAmount": 1800
+    "tdsAmount": 1800,
+    "transactionType": ""
   },
   {
     "invoiceNo": "D/24-25/004",
@@ -69,7 +72,8 @@
     "isPaid": false,
     "companyName": "rachana",
     "paidAmount": 11500,
-    "tdsAmount": 0
+    "tdsAmount": 0,
+    "transactionType": ""
   },
   {
     "invoiceNo": "D/24-25/004",
@@ -86,6 +90,7 @@
     "isPaid": false,
     "companyName": "rachana",
     "paidAmount": 11509,
-    "tdsAmount": 0
+    "tdsAmount": 0,
+    "transactionType": ""
   }
 ]

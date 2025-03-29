@@ -87,7 +87,7 @@
     ],
     "total": 11200,
     "createdAt": "2025-03-13T12:31:01.5727169+05:30",
-    "isPaid": false,
+    "isPaid": true,
     "companyName": "dhanchha",
     "paidAmount": 10000,
     "tdsAmount": 1200,
@@ -95,7 +95,7 @@
   },
   {
     "invoiceNo": "10004",
-    "customerName": "Het Patel",
+    "customerName": "Het Patel 2",
     "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat 2",
     "items": [
       {
@@ -130,6 +130,42 @@
     "isPaid": false,
     "companyName": "dhanchha",
     "paidAmount": 2222,
+    "tdsAmount": 0,
+    "transactionType": "online"
+  },
+  {
+    "invoiceNo": "10010",
+    "customerName": "Het Varasada",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
+    "items": [
+      {
+        "description": "Product Product Product ",
+        "amount": 12200
+      }
+    ],
+    "total": 12200,
+    "createdAt": "2025-03-23T15:22:06.4624879+05:30",
+    "isPaid": false,
+    "companyName": "dhanchha",
+    "paidAmount": 12200,
+    "tdsAmount": 0,
+    "transactionType": "online"
+  },
+  {
+    "invoiceNo": "10011",
+    "customerName": "Het Varasada 2",
+    "customerAddress": "Indraprashth Society, \nOpposite to Kamdhenu party plote,\nMorbi - Gujarat",
+    "items": [
+      {
+        "description": "sdfdf",
+        "amount": 122
+      }
+    ],
+    "total": 122,
+    "createdAt": "2025-03-29T15:59:38.3002901+05:30",
+    "isPaid": false,
+    "companyName": "dhanchha",
+    "paidAmount": 122,
     "tdsAmount": 0,
     "transactionType": "online"
   }

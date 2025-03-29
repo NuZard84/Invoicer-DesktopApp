@@ -57,13 +57,12 @@ const NewInvoice: React.FC = () => {
     customerAddress: "",
     items: [{ description: "", amount: "" }],
   });
-  const [isPanNo, setIsPanNo] = useState(true);
-  const [isBankDetails, setIsBankDetails] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyInfo | null>(null);
-  const [generatePDF, setGeneratePDF] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [transactionType, setTransactionType] = useState<string>("online");
+  const [isPanNo, setIsPanNo] = useState(true);
+  const [isBankDetails, setIsBankDetails] = useState(true);
 
   useEffect(() => {
     if (!company) return;
@@ -90,14 +89,6 @@ const NewInvoice: React.FC = () => {
       loadInvoiceData(company, invoiceId);
     }
   }, [company, invoiceId]);
-
-  useEffect(() => {
-    // Check if the generatePDF query parameter is present
-    const queryParams = new URLSearchParams(location.search);
-    if (queryParams.get("generatePDF") === "true") {
-      setGeneratePDF(true);
-    }
-  }, [location]);
 
   const loadInvoiceData = async (company: string, invoiceId: string) => {
     try {
@@ -197,33 +188,13 @@ const NewInvoice: React.FC = () => {
 
     try {
       if (isEditing) {
-        // If editing existing invoice, just update the data
+        // If editing existing invoice, update the data and generate PDF
         await UpdateInvoice(company, formData.invoiceNo, invoiceData);
-
-        // Only generate PDF if requested
-        if (generatePDF) {
-          await generateAndSavePDF(invoiceData);
-        } else {
-          alert("Invoice updated successfully!");
-          navigate(`/company/${company}/billings`);
-        }
+        await generateAndSavePDF(invoiceData);
       } else {
-        // If creating new invoice, add the data
+        // If creating new invoice, add the data and generate PDF
         await AddInvoice(company, invoiceData);
-
-        // Only generate PDF if requested
-        if (generatePDF) {
-          await generateAndSavePDF(invoiceData);
-        } else {
-          alert("Invoice created successfully!");
-          setFormData({
-            invoiceNo: "",
-            invoiceDate: "",
-            customerName: "",
-            customerAddress: "",
-            items: [{ description: "", amount: "" }],
-          });
-        }
+        await generateAndSavePDF(invoiceData);
       }
     } catch (err: any) {
       console.error("Error handling invoice:", err);
@@ -306,34 +277,6 @@ const NewInvoice: React.FC = () => {
         });
       }
     };
-  };
-
-  // Toggle switch component
-  const Toggle: React.FC<{
-    enabled: boolean;
-    setEnabled: (enabled: boolean) => void;
-    label: string;
-  }> = ({ enabled, setEnabled, label }) => {
-    return (
-      <div className="flex items-center space-x-2">
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            className="sr-only peer"
-            checked={enabled}
-            onChange={() => setEnabled(!enabled)}
-          />
-          <div
-            className={`w-11 h-6 rounded-full peer ${
-              enabled
-                ? "bg-dp dark:bg-mp-dark after:translate-x-full"
-                : "bg-gray-300 dark:bg-gray-600"
-            } after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
-          ></div>
-        </label>
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-    );
   };
 
   return (
@@ -505,42 +448,51 @@ const NewInvoice: React.FC = () => {
               </div>
             </div>
 
-            {/* PDF Generation Option */}
-            <div className="mb-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="generatePDF"
-                  checked={generatePDF}
-                  onChange={(e) => setGeneratePDF(e.target.checked)}
-                  className="w-4 h-4 text-dp dark:text-mp-dark rounded"
-                />
-                <label htmlFor="generatePDF" className="font-medium">
-                  {isEditing ? "Generate updated PDF" : "Generate PDF now"}
-                </label>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                {isEditing
-                  ? "If unchecked, only the invoice data will be updated without generating a new PDF."
-                  : "If unchecked, only the invoice data will be saved. You can generate the PDF later from the Billings page."}
-              </p>
-            </div>
-
-            {/* PDF Content Options Section - Only show for non-Dhanchha templates and when generate PDF is checked */}
-            {!isDhanchhaTemplate && generatePDF && (
+            {!isDhanchhaTemplate && (
               <div className="mb-4">
                 <h2 className="text-xl text-dp mb-4">PDF Content Options</h2>
                 <div className="flex flex-col space-y-4">
-                  <Toggle
-                    enabled={isPanNo}
-                    setEnabled={setIsPanNo}
-                    label="Include PAN Number"
-                  />
-                  <Toggle
-                    enabled={isBankDetails}
-                    setEnabled={setIsBankDetails}
-                    label="Include Bank Details"
-                  />
+                  <div className="flex items-center space-x-2">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={isPanNo}
+                        onChange={() => setIsPanNo(!isPanNo)}
+                      />
+                      <div
+                        className={`w-11 h-6 rounded-full peer ${
+                          isPanNo
+                            ? "bg-dp dark:bg-mp-dark after:translate-x-full"
+                            : "bg-gray-300 dark:bg-gray-600"
+                        } after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
+                      ></div>
+                    </label>
+                    <span className="text-sm font-medium">
+                      Include PAN Number
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={isBankDetails}
+                        onChange={() => setIsBankDetails(!isBankDetails)}
+                      />
+                      <div
+                        className={`w-11 h-6 rounded-full peer ${
+                          isBankDetails
+                            ? "bg-dp dark:bg-mp-dark after:translate-x-full"
+                            : "bg-gray-300 dark:bg-gray-600"
+                        } after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
+                      ></div>
+                    </label>
+                    <span className="text-sm font-medium">
+                      Include Bank Details
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -565,9 +517,13 @@ const NewInvoice: React.FC = () => {
             </div>
           </form>
 
-          {/* PDF Preview Container - Only show when generate PDF is checked */}
-          {companyData && generatePDF ? (
+          {/* PDF Preview Container - Always shown */}
+          {companyData && (
             <div className="w-full lg:w-1/2 border dark:border-0 dark:bg-[#464a56] bg-gray-100 rounded-lg p-4 h-full">
+              <p className="text-sm text-center mb-2 text-gray-500">
+                PDF preview will be generated when you save the invoice. Use the
+                previewer's built-in download option to save the PDF.
+              </p>
               {isDhanchhaTemplate ? (
                 <DhanchhaPDF
                   formData={formData}
@@ -582,14 +538,6 @@ const NewInvoice: React.FC = () => {
                     isBankDetails: isBankDetails,
                   }}
                 />
-              )}
-            </div>
-          ) : (
-            <div className="w-full lg:w-1/2 flex items-center justify-center">
-              {generatePDF ? (
-                <p>Loading preview...</p>
-              ) : (
-                <p className="text-gray-500">PDF preview disabled</p>
               )}
             </div>
           )}
