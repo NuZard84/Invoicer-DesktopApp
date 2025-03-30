@@ -2,34 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  House,
-  ReceiptText,
-  LayoutTemplate,
-  Plus,
-  Moon,
-  Sun,
-} from "lucide-react";
+import { House, ReceiptText, LayoutTemplate, Plus } from "lucide-react";
 
 const Navbar: React.FC = () => {
-  // Dark Mode State
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem("theme") === "dark";
-  });
-
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
-  };
+    // Always enable dark mode
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+  }, []);
 
   const companies = [
     { name: "DHANCHHA" },
@@ -66,12 +46,6 @@ const Navbar: React.FC = () => {
     <nav className="fixed w-64 h-screen bg-bg dark:bg-bg-dark text-gf dark:text-gf-dark p-4 shadow-md">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-xl font-bold text-dp dark:text-dp">Invoicer</h1>
-        <button
-          onClick={toggleDarkMode}
-          className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-200 transition-all"
-        >
-          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
       </div>
 
       <ul className="space-y-4">

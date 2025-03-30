@@ -342,7 +342,7 @@ const NewInvoice: React.FC = () => {
                       onClick={() => setTransactionType("online")}
                       className={`flex-1 py-2 px-4 text-center transition-colors border-r dark:border-slate-600 ${
                         transactionType === "online"
-                          ? "bg-dp dark:bg-mp-dark text-white"
+                          ? "bg-dp dark:bg-gray-800 text-white"
                           : "bg-white dark:bg-[#464a56] hover:bg-gray-100 dark:hover:bg-slate-700"
                       }`}
                     >
@@ -353,7 +353,7 @@ const NewInvoice: React.FC = () => {
                       onClick={() => setTransactionType("cheque")}
                       className={`flex-1 py-2 px-4 text-center transition-colors ${
                         transactionType === "cheque"
-                          ? "bg-dp dark:bg-mp-dark text-white"
+                          ? "bg-dp dark:bg-gray-800 text-white"
                           : "bg-white dark:bg-[#464a56] hover:bg-gray-100 dark:hover:bg-slate-700"
                       }`}
                     >
@@ -437,7 +437,7 @@ const NewInvoice: React.FC = () => {
                 type="button"
                 disabled={formData.items.length <= 0}
                 onClick={addItem}
-                className="mt-2 px-3 py-1 bg-mp text-white rounded-md dark:bg-dp hover:bg-mp-dark hover:dark:bg-mp transition-colors"
+                className="mt-2 px-3 py-1 bg-mp text-white rounded-md dark:bg-gray-800 hover:bg-mp-dark hover:dark:bg-gray-700 transition-colors"
               >
                 + Add Item
               </button>
@@ -463,7 +463,7 @@ const NewInvoice: React.FC = () => {
                       <div
                         className={`w-11 h-6 rounded-full peer ${
                           isPanNo
-                            ? "bg-dp dark:bg-mp-dark after:translate-x-full"
+                            ? "bg-dp dark:bg-gray-800 after:translate-x-full"
                             : "bg-gray-300 dark:bg-gray-600"
                         } after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
                       ></div>
@@ -484,7 +484,7 @@ const NewInvoice: React.FC = () => {
                       <div
                         className={`w-11 h-6 rounded-full peer ${
                           isBankDetails
-                            ? "bg-dp dark:bg-mp-dark after:translate-x-full"
+                            ? "bg-dp dark:bg-gray-800 after:translate-x-full"
                             : "bg-gray-300 dark:bg-gray-600"
                         } after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
                       ></div>
@@ -500,7 +500,7 @@ const NewInvoice: React.FC = () => {
             <div className="flex space-x-4">
               <button
                 type="submit"
-                className="dark:bg-dp bg-mp text-white px-4 py-2 rounded-lg hover:dark:bg-mp hover:bg-mp-dark transition-colors"
+                className="dark:bg-gray-800 bg-mp text-white px-4 py-2 rounded-lg hover:dark:bg-gray-700 hover:bg-mp-dark transition-colors"
               >
                 {isEditing ? "Update Invoice" : "Create Invoice"}
               </button>

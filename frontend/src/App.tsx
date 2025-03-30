@@ -11,6 +11,10 @@ import Template from "./components/Template";
 
 export default function App() {
   useEffect(() => {
+    // Always enable dark mode
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+
     const stored = localStorage.getItem("userTemplateData");
     const parsed = stored ? JSON.parse(stored) : [];
 

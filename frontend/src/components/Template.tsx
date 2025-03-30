@@ -340,7 +340,7 @@ const Template: React.FC = () => {
             />
             <label
               htmlFor="company-logo"
-              className="cursor-pointer bg-mp text-white px-4 py-1 rounded-md w-fit hover:bg-mp-dark dark:bg-dp hover:dark:bg-mp transition-colors"
+              className="cursor-pointer bg-mp text-white px-4 py-1 rounded-md w-fit hover:bg-mp-dark dark:bg-gray-800 hover:dark:bg-gray-700 transition-colors"
             >
               Choose File
             </label>
@@ -350,7 +350,7 @@ const Template: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="dark:bg-dp bg-mp text-white px-4 py-2 rounded-lg hover:dark:bg-mp hover:bg-mp-dark transition-colors"
+            className="dark:bg-gray-800 hover:dark:bg-gray-700 bg-mp text-white px-4 py-2 rounded-lg  hover:bg-mp-dark transition-colors"
           >
             Save Information
           </button>
