@@ -1,0 +1,29 @@
+name: Build Wails App for macOS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Go
+        run: brew install go
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Build macOS App
+        run: wails build -platform darwin
+
+      - name: Upload macOS Build Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: MyApp-macos
+          path: ./build/MyApp.app
