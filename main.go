@@ -8,15 +8,16 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
+//go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title: "Invoicer",
-		Width: 1024,
-		// MinWidth:  1024,
+		Title:     "Invoicer",
+		Width:     1024,
+		MinWidth:  1024,
 		Height:    788,
 		MinHeight: 788,
 		AssetServer: &assetserver.Options{

@@ -188,13 +188,23 @@ const NewInvoice: React.FC = () => {
 
     try {
       if (isEditing) {
-        // If editing existing invoice, update the data and generate PDF
+        // If editing existing invoice, update the data only
         await UpdateInvoice(company, formData.invoiceNo, invoiceData);
-        await generateAndSavePDF(invoiceData);
+        alert("Invoice updated successfully!");
+        navigate(`/company/${company}/billings`);
       } else {
-        // If creating new invoice, add the data and generate PDF
+        // If creating new invoice, add the data only
         await AddInvoice(company, invoiceData);
-        await generateAndSavePDF(invoiceData);
+        alert("Invoice created successfully!");
+
+        // Reset form for new invoice creation
+        setFormData({
+          invoiceNo: "",
+          invoiceDate: "",
+          customerName: "",
+          customerAddress: "",
+          items: [{ description: "", amount: "" }],
+        });
       }
     } catch (err: any) {
       console.error("Error handling invoice:", err);
