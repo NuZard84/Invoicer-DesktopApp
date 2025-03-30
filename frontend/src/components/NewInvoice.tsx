@@ -60,7 +60,7 @@ const NewInvoice: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyInfo | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [transactionType, setTransactionType] = useState<string>("online");
+  const [transactionType, setTransactionType] = useState<string>("cash");
   const [isPanNo, setIsPanNo] = useState(true);
   const [isBankDetails, setIsBankDetails] = useState(true);
 
@@ -349,25 +349,25 @@ const NewInvoice: React.FC = () => {
                   <div className="flex items-center w-2/3 rounded-lg overflow-hidden border dark:border-slate-600">
                     <button
                       type="button"
-                      onClick={() => setTransactionType("online")}
+                      onClick={() => setTransactionType("cash")}
                       className={`flex-1 py-2 px-4 text-center transition-colors border-r dark:border-slate-600 ${
-                        transactionType === "online"
+                        transactionType === "cash"
                           ? "bg-dp dark:bg-gray-800 text-white"
                           : "bg-white dark:bg-[#464a56] hover:bg-gray-100 dark:hover:bg-slate-700"
                       }`}
                     >
-                      Online
+                      Cash
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTransactionType("cheque")}
+                      onClick={() => setTransactionType("debit")}
                       className={`flex-1 py-2 px-4 text-center transition-colors ${
-                        transactionType === "cheque"
+                        transactionType === "debit"
                           ? "bg-dp dark:bg-gray-800 text-white"
                           : "bg-white dark:bg-[#464a56] hover:bg-gray-100 dark:hover:bg-slate-700"
                       }`}
                     >
-                      Cheque
+                      Debit
                     </button>
                   </div>
                 </div>
