@@ -13,39 +13,32 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install Xcode Command Line Tools
-        run: xcode-select --install || echo "Xcode tools already installed"
-
-      - name: Install Go
+      - name: Install Dependencies
         run: |
-          brew install go
-          echo "export PATH=$(go env GOPATH)/bin:\$PATH" >> $HOME/.bash_profile
-          echo "export GOPATH=$(go env GOPATH)" >> $HOME/.bash_profile
-          source $HOME/.bash_profile
-
-      - name: Install Wails Dependencies
-        run: |
-          brew install node
-          brew install npm
-          npm install -g yarn
+          brew install go node
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          export PATH="$(go env GOPATH)/bin:$PATH"
 
       - name: Install Wails
         run: |
           go install github.com/wailsapp/wails/v2/cmd/wails@latest
-          echo "export PATH=$(go env GOPATH)/bin:\$PATH" >> $HOME/.bash_profile
-          source $HOME/.bash_profile
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH  # Ensure Wails is in PATH
+          export PATH="$(go env GOPATH)/bin:$PATH"  # Apply immediately
 
       - name: Verify Wails Installation
-        run: wails doctor
-
-      - name: Validate Info.plist
-        run: plutil -lint ./build/bin/invoicer.app/Contents/Info.plist || echo "Info.plist validation failed!"
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          which wails
+          wails doctor
 
       - name: Build macOS App
-        run: wails build -platform darwin/amd64,darwin/arm64
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          wails build -platform darwin
 
-      - name: Check Build Output
-        run: ls -lah ./build/bin/invoicer.app
+      - name: Debug Build Output
+        run: |
+          ls -R ./build/bin
 
       - name: Upload macOS Build Artifact
         uses: actions/upload-artifact@v4
