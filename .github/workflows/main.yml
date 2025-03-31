@@ -13,6 +13,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Install Xcode Command Line Tools
+        run: xcode-select --install || echo "Xcode tools already installed"
+
       - name: Install Dependencies
         run: |
           brew install go node
@@ -35,6 +38,9 @@ jobs:
         run: |
           export PATH="$(go env GOPATH)/bin:$PATH"
           wails build -platform darwin
+          
+      - name: Check Build Output
+        run: ls -lah ./build/bin/invoicer.app
 
       - name: Debug Build Output
         run: |
@@ -43,5 +49,5 @@ jobs:
       - name: Upload macOS Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-macos
+          name: InvoicerApp-macos
           path: ./build/bin/invoicer.app
