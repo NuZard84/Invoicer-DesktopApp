@@ -23,6 +23,7 @@ type Invoice struct {
 	Items           []Item    `json:"items"`
 	Total           float64   `json:"total"`
 	CreatedAt       time.Time `json:"createdAt"`
+	InvoiceDate     time.Time `json:"invoiceDate"`
 	IsPaid          bool      `json:"isPaid"`
 	CompanyName     string    `json:"companyName"`
 	PaidAmount      float64   `json:"paidAmount"`      // New field: actual paid amount
@@ -36,6 +37,7 @@ type InvoiceData struct {
 	CustomerName string    `json:"customerName"`
 	Total        float64   `json:"total"`
 	CreatedAt    time.Time `json:"createdAt"`
+	InvoiceDate  time.Time `json:"invoiceDate"`
 	IsPaid       bool      `json:"isPaid"`
 	PaidAmount   float64   `json:"paidAmount"` // New field
 	TDSAmount    float64   `json:"tdsAmount"`  // New field
@@ -175,6 +177,13 @@ func (a *App) AddInvoice(company string, input InvoiceInput) error {
 		}
 	}
 
+	// Parse invoice date from string
+	invoiceDate, err := time.Parse("2006-01-02", input.InvoiceDate)
+	if err != nil {
+		// If there's an error parsing the date, use today's date
+		invoiceDate = time.Now()
+	}
+
 	invoice := Invoice{
 		InvoiceNo:       input.InvoiceNo,
 		CustomerName:    input.CustomerName,
@@ -182,6 +191,7 @@ func (a *App) AddInvoice(company string, input InvoiceInput) error {
 		Items:           input.Items,
 		Total:           input.Total,
 		CreatedAt:       time.Now(),
+		InvoiceDate:     invoiceDate,
 		IsPaid:          false,
 		CompanyName:     company,
 		PaidAmount:      input.Total,
@@ -259,6 +269,7 @@ func (a *App) GetInvoices(company string) ([]InvoiceData, error) {
 			CustomerName: inv.CustomerName,
 			Total:        inv.Total,
 			CreatedAt:    inv.CreatedAt,
+			InvoiceDate:  inv.InvoiceDate,
 			IsPaid:       inv.IsPaid,
 			PaidAmount:   inv.PaidAmount,
 			TDSAmount:    inv.TDSAmount,
@@ -470,6 +481,15 @@ func (a *App) UpdateInvoice(company string, invoiceNo string, input InvoiceInput
 	a.companies[company][existingInvoiceIndex].CustomerAddress = input.CustomerAddress
 	a.companies[company][existingInvoiceIndex].Items = input.Items
 	a.companies[company][existingInvoiceIndex].Total = input.Total
+
+	// Parse invoice date from string
+	invoiceDate, err := time.Parse("2006-01-02", input.InvoiceDate)
+	if err != nil {
+		// If there's an error parsing the date, don't update the invoice date
+		// You could return an error here instead if you prefer
+	} else {
+		a.companies[company][existingInvoiceIndex].InvoiceDate = invoiceDate
+	}
 
 	return a.saveCompanyData(company)
 }

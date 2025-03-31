@@ -22,6 +22,8 @@ export namespace main {
 	    total: number;
 	    // Go type: time
 	    createdAt: any;
+	    // Go type: time
+	    invoiceDate: any;
 	    isPaid: boolean;
 	    companyName: string;
 	    paidAmount: number;
@@ -40,6 +42,7 @@ export namespace main {
 	        this.items = this.convertValues(source["items"], Item);
 	        this.total = source["total"];
 	        this.createdAt = this.convertValues(source["createdAt"], null);
+	        this.invoiceDate = this.convertValues(source["invoiceDate"], null);
 	        this.isPaid = source["isPaid"];
 	        this.companyName = source["companyName"];
 	        this.paidAmount = source["paidAmount"];
@@ -71,6 +74,8 @@ export namespace main {
 	    total: number;
 	    // Go type: time
 	    createdAt: any;
+	    // Go type: time
+	    invoiceDate: any;
 	    isPaid: boolean;
 	    paidAmount: number;
 	    tdsAmount: number;
@@ -85,6 +90,7 @@ export namespace main {
 	        this.customerName = source["customerName"];
 	        this.total = source["total"];
 	        this.createdAt = this.convertValues(source["createdAt"], null);
+	        this.invoiceDate = this.convertValues(source["invoiceDate"], null);
 	        this.isPaid = source["isPaid"];
 	        this.paidAmount = source["paidAmount"];
 	        this.tdsAmount = source["tdsAmount"];

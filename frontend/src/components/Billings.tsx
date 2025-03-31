@@ -7,22 +7,57 @@ import {
   ExportCSV,
 } from "../../wailsjs/go/main/App";
 import { useParams, useNavigate } from "react-router-dom";
-import { FileText, Printer } from "lucide-react";
+import { FileText, Printer, Search } from "lucide-react";
 import PrintButton from "./Templates/PrintButton";
 
 const Billings: React.FC = () => {
   const { company } = useParams<{ company: string | undefined }>();
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [filteredInvoices, setFilteredInvoices] = useState<any[]>([]);
   const [companyString, setCompanyString] = useState<string>("");
   const [isPrinting, setIsPrinting] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [companyData, setCompanyData] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedFiscalYear, setSelectedFiscalYear] = useState<string>("");
   const navigate = useNavigate();
+
+  // Generate fiscal year options
+  const getCurrentFiscalYear = () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+
+    // If current month is January to March, we're in the previous fiscal year
+    if (currentMonth < 3) {
+      return `${currentYear - 1}-${currentYear.toString().slice(-2)}`;
+    } else {
+      return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+    }
+  };
+
+  const generateFiscalYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const options = [];
+
+    // Generate options for the last 5 years and next 2 years
+    for (let i = -5; i <= 2; i++) {
+      const year = currentYear + i;
+      options.push(`${year}-${(year + 1).toString().slice(-2)}`);
+    }
+
+    return options;
+  };
+
+  const fiscalYearOptions = generateFiscalYearOptions();
 
   useEffect(() => {
     if (company) {
       setCompanyString(company);
+      // Set default fiscal year
+      setSelectedFiscalYear(getCurrentFiscalYear());
+
       // Load company data from localStorage
       const stored = localStorage.getItem("userTemplateData");
       if (stored) {
@@ -47,14 +82,65 @@ const Billings: React.FC = () => {
       try {
         const res = await GetInvoices(companyString);
         setInvoices(res);
+        filterInvoices(res, searchQuery, selectedFiscalYear);
       } catch (error) {
         console.log(error);
       }
     };
-    if (invoices.length === 0 && companyString) {
+
+    if (companyString) {
       fetchInvoiceData();
     }
-  }, [companyString, invoices.length]);
+  }, [companyString, selectedFiscalYear]);
+
+  // Filter invoices based on search query and fiscal year
+  const filterInvoices = (
+    invoices: any[],
+    query: string,
+    fiscalYear: string
+  ) => {
+    let filtered = [...invoices];
+
+    // Filter by fiscal year
+    if (fiscalYear) {
+      const [startYear, endYear] = fiscalYear
+        .split("-")
+        .map((year) => parseInt(year.length === 2 ? `20${year}` : year));
+      const startDate = new Date(`${startYear}-04-01`);
+      const endDate = new Date(`${endYear}-03-31`);
+
+      filtered = filtered.filter((inv) => {
+        const dateToCheck = inv.invoiceDate
+          ? new Date(inv.invoiceDate)
+          : new Date(inv.createdAt);
+        return dateToCheck >= startDate && dateToCheck <= endDate;
+      });
+    }
+
+    // Filter by search query
+    if (query) {
+      const lowerQuery = query.toLowerCase();
+      filtered = filtered.filter(
+        (inv) =>
+          inv.invoiceNo.toLowerCase().includes(lowerQuery) ||
+          inv.customerName.toLowerCase().includes(lowerQuery) ||
+          inv.total.toString().includes(lowerQuery) ||
+          (inv.invoiceDate
+            ? new Date(inv.invoiceDate)
+                .toLocaleDateString()
+                .includes(lowerQuery)
+            : false) ||
+          new Date(inv.createdAt).toLocaleDateString().includes(lowerQuery) ||
+          (inv.isPaid ? "paid" : "unpaid").includes(lowerQuery)
+      );
+    }
+
+    setFilteredInvoices(filtered);
+  };
+
+  useEffect(() => {
+    filterInvoices(invoices, searchQuery, selectedFiscalYear);
+  }, [invoices, searchQuery, selectedFiscalYear]);
 
   const updateInvoicePaymentStatus = async (
     company: string,
@@ -106,11 +192,6 @@ const Billings: React.FC = () => {
 
   const handleEditInvoice = (invoiceNo: string) => {
     navigate(`/company/${company}/edit-invoice/${invoiceNo}`);
-  };
-
-  const handleViewPDF = (invoiceNo: string) => {
-    // Navigate to the edit invoice page with the PDF preview enabled
-    navigate(`/company/${company}/edit-invoice/${invoiceNo}?generatePDF=true`);
   };
 
   const handlePrintInvoice = async (invoiceNo: string) => {
@@ -167,25 +248,25 @@ const Billings: React.FC = () => {
     }
   };
 
-  // Calculate totals
-  const totalPaidAmount = invoices.reduce(
+  // Calculate totals for filtered invoices
+  const totalPaidAmount = filteredInvoices.reduce(
     (acc, inv) => acc + (inv.paidAmount || 0),
     0
   );
-  const totalTDSAmount = invoices.reduce(
+  const totalTDSAmount = filteredInvoices.reduce(
     (acc, inv) => acc + (inv.total - inv.paidAmount),
     0
   );
-  const totalAmount = invoices.reduce(
+  const totalAmount = filteredInvoices.reduce(
     (acc, inv) => acc + parseFloat(inv.total),
     0
   );
 
-  const paidAmount = invoices
+  const paidAmount = filteredInvoices
     .filter((item) => item.isPaid === true)
     .reduce((acc, inv) => acc + parseFloat(inv.total), 0);
 
-  const unPaidAmount = invoices
+  const unPaidAmount = filteredInvoices
     .filter((item) => item.isPaid === false)
     .reduce((acc, inv) => acc + parseFloat(inv.total), 0);
 
@@ -195,28 +276,59 @@ const Billings: React.FC = () => {
         <div className="flex flex-row justify-end gap-2">
           <div className="text-green-400 text-lg">Total Paid Amount </div>
           <div className="text-lg">
-            {paidAmount === 0 ? "00.00" : paidAmount}
+            {paidAmount === 0 ? "00.00" : paidAmount.toFixed(2)}
           </div>
         </div>
         <div className="flex flex-row gap-2">
           <div className="text-red-400 text-lg">Total Unpaid Amount </div>
           <div className="text-lg">
-            {unPaidAmount === 0 ? "00.00" : unPaidAmount}
+            {unPaidAmount === 0 ? "00.00" : unPaidAmount.toFixed(2)}
           </div>
         </div>
       </div>
       <h1 className="text-3xl mb-4">Billing History</h1>
-      <button
-        onClick={handleExportCSV}
-        disabled={isExporting || invoices.length === 0}
-        className={`bg-mp hover:bg-mp-dark px-3 py-2 text-white rounded-md mb-4 transition-colors ${
-          isExporting || invoices.length === 0
-            ? "opacity-50 cursor-not-allowed"
-            : ""
-        }`}
-      >
-        {isExporting ? "Exporting..." : "Export CSV"}
-      </button>
+
+      <div className="flex flex-row items-center gap-4 mb-4">
+        <button
+          onClick={handleExportCSV}
+          disabled={isExporting || filteredInvoices.length === 0}
+          className={`bg-mp hover:bg-mp-dark px-3 py-2 text-white rounded-md transition-colors ${
+            isExporting || filteredInvoices.length === 0
+              ? "opacity-50 cursor-not-allowed"
+              : ""
+          }`}
+        >
+          {isExporting ? "Exporting..." : "Export CSV"}
+        </button>
+
+        <div className="relative">
+          <select
+            value={selectedFiscalYear}
+            onChange={(e) => setSelectedFiscalYear(e.target.value)}
+            className="bg-cbg dark:bg-cbg-dark border border-gf/30 dark:border-gf-dark/30 rounded-md px-3 py-2"
+          >
+            {fiscalYearOptions.map((year) => (
+              <option key={year} value={year}>
+                FY {year}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search invoices..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-cbg dark:bg-cbg-dark border border-gf/30 dark:border-gf-dark/30 rounded-md pl-10 pr-3 py-2 w-64"
+          />
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Search size={16} className="text-gf dark:text-gf-dark" />
+          </div>
+        </div>
+      </div>
+
       <div className="relative">
         <table className="min-w-full bg-bg dark:bg-bg-dark border border-gf/30 dark:border-gf-dark/30">
           <thead>
@@ -248,7 +360,7 @@ const Billings: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {invoices.map((inv, index) => (
+            {filteredInvoices.map((inv, index) => (
               <tr
                 key={index}
                 className={
@@ -265,7 +377,9 @@ const Billings: React.FC = () => {
                   {inv.invoiceNo}
                 </td>
                 <td className="w-32 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  {new Date(inv.createdAt).toLocaleString().split(",")[0]}
+                  {inv.invoiceDate
+                    ? new Date(inv.invoiceDate).toLocaleString().split(",")[0]
+                    : new Date(inv.createdAt).toLocaleString().split(",")[0]}
                 </td>
                 <td className="w-96 border border-gf/30 dark:border-gf-dark/30 text-center">
                   {inv.customerName}
@@ -316,13 +430,6 @@ const Billings: React.FC = () => {
                     >
                       {inv.isPaid ? "paid" : "unpaid"}
                     </button>
-                    {/* <button
-                      onClick={() => handleViewPDF(inv.invoiceNo)}
-                      className="bg-purple-200 dark:bg-purple-800/30 text-purple-700 dark:text-purple-400 rounded-xl p-1 transition-colors"
-                      title="View PDF"
-                    >
-                      <FileText size={16} />
-                    </button> */}
                     <button
                       onClick={() => handlePrintInvoice(inv.invoiceNo)}
                       className="bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors"
@@ -335,7 +442,7 @@ const Billings: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {invoices.length === 0 && (
+            {filteredInvoices.length === 0 && (
               <tr>
                 <td
                   colSpan={8}
@@ -347,6 +454,7 @@ const Billings: React.FC = () => {
             )}
           </tbody>
         </table>
+
         {/* Sticky Footer */}
         <div className="sticky bottom-0 bg-lp dark:bg-lp-dark border-gf/40 dark:border-gf-dark/40 flex">
           <table className="min-w-full self-end">
