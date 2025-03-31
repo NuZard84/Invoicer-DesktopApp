@@ -1,0 +1,54 @@
+name: Build Wails App for macOS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Xcode Command Line Tools
+        run: xcode-select --install || echo "Xcode tools already installed"
+
+      - name: Install Go
+        run: |
+          brew install go
+          echo "export PATH=$(go env GOPATH)/bin:\$PATH" >> $HOME/.bash_profile
+          echo "export GOPATH=$(go env GOPATH)" >> $HOME/.bash_profile
+          source $HOME/.bash_profile
+
+      - name: Install Wails Dependencies
+        run: |
+          brew install node
+          brew install npm
+          npm install -g yarn
+
+      - name: Install Wails
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "export PATH=$(go env GOPATH)/bin:\$PATH" >> $HOME/.bash_profile
+          source $HOME/.bash_profile
+
+      - name: Verify Wails Installation
+        run: wails doctor
+
+      - name: Validate Info.plist
+        run: plutil -lint ./build/bin/invoicer.app/Contents/Info.plist || echo "Info.plist validation failed!"
+
+      - name: Build macOS App
+        run: wails build -platform darwin/amd64,darwin/arm64
+
+      - name: Check Build Output
+        run: ls -lah ./build/bin/invoicer.app
+
+      - name: Upload macOS Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyApp-macos
+          path: ./build/bin/invoicer.app
