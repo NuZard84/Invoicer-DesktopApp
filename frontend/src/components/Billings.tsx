@@ -131,7 +131,8 @@ const Billings: React.FC = () => {
                 .includes(lowerQuery)
             : false) ||
           new Date(inv.createdAt).toLocaleDateString().includes(lowerQuery) ||
-          (inv.isPaid ? "paid" : "unpaid").includes(lowerQuery)
+          (inv.isPaid && lowerQuery === "paid") ||
+          (!inv.isPaid && lowerQuery === "unpaid")
       );
     }
 
