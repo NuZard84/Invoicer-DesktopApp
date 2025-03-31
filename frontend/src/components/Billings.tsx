@@ -38,12 +38,11 @@ const Billings: React.FC = () => {
   };
 
   const generateFiscalYearOptions = () => {
-    const currentYear = new Date().getFullYear();
     const options = [];
 
-    // Generate options for the last 5 years and next 2 years
-    for (let i = -5; i <= 2; i++) {
-      const year = currentYear + i;
+    // Start from fiscal year 2024-25 and generate options for the next 15 years
+    for (let i = 0; i < 15; i++) {
+      const year = 2024 + i;
       options.push(`${year}-${(year + 1).toString().slice(-2)}`);
     }
 
