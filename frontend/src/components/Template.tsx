@@ -9,13 +9,12 @@ const Template: React.FC = () => {
     companyName: "",
     companyTitle: "",
     companyAddress: "",
-    gstNo: "",
-    companyLogo: null as string | null,
     panNo: "",
     bankName: "",
     accountNo: "",
     ifsc: "",
     email: "",
+    companyLogo: null as string | null,
     isTemplateFilled: false,
   });
   const [fileName, setFileName] = useState<string | null>(null);
@@ -105,13 +104,12 @@ const Template: React.FC = () => {
       companyName: "",
       companyTitle: "",
       companyAddress: "",
-      gstNo: "",
-      companyLogo: null,
       panNo: "",
       bankName: "",
       accountNo: "",
       ifsc: "",
       email: "",
+      companyLogo: null,
       isTemplateFilled: false,
     });
     setFileName(null);
@@ -155,10 +153,6 @@ const Template: React.FC = () => {
           <p className="text-lg">
             <strong>Company Address: </strong>
             {formData.companyAddress}
-          </p>
-          <p className="text-lg">
-            <strong>GST No: </strong>
-            {formData.gstNo}
           </p>
           <p className="text-lg">
             <strong>PAN No: </strong>
@@ -240,20 +234,6 @@ const Template: React.FC = () => {
                 }))
               }
               className="dark:bg-slate-600 bg-white rounded-md w-[65%] pl-2 py-1 border dark:border-0 min-h-[100px] resize-none"
-            />
-          </div>
-          <div className="gap-2 flex flex-col">
-            <label htmlFor="gstNo" className="font-medium">
-              GST No:
-            </label>
-            <input
-              id="gstNo"
-              type="number"
-              placeholder="Enter GST No."
-              required
-              value={formData.gstNo}
-              onChange={handleInputChange}
-              className="dark:bg-slate-600 bg-white rounded-md w-[65%] pl-2 py-1 border dark:border-0"
             />
           </div>
           <div className="gap-2 flex flex-col">

@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // Invoice is the full type stored in the system.
@@ -65,7 +66,6 @@ type CompanyInfo struct {
 	Name           string `json:"name"`
 	CompanyName    string `json:"companyName"`
 	CompanyAddress string `json:"companyAddress"`
-	GstNo          string `json:"gstNo"`
 	PanNo          string `json:"panNo"`
 	BankName       string `json:"bankName"`
 	AccountNo      string `json:"accountNo"`
@@ -79,6 +79,7 @@ type App struct {
 	ctx          context.Context
 	companies    map[string][]Invoice
 	companyInfos map[string]CompanyInfo
+	baseDataDir  string // Base data directory that will be platform-specific
 }
 
 // NewApp creates a new App instance.
@@ -87,6 +88,9 @@ func NewApp() *App {
 		companies:    make(map[string][]Invoice),
 		companyInfos: make(map[string]CompanyInfo),
 	}
+
+	// Initialize base data directory
+	app.initBaseDataDir()
 
 	// List of companies (will be used with lower-case keys)
 	companies := []string{"DHANCHHA", "RACHANA", "MITAL"}
@@ -97,35 +101,66 @@ func NewApp() *App {
 	return app
 }
 
+// initBaseDataDir sets up the base data directory based on the operating system
+func (a *App) initBaseDataDir() {
+	// Determine if running on macOS, Windows, or Linux
+	if runtime.GOOS == "darwin" {
+		// For macOS, use the Application Support directory
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			a.baseDataDir = filepath.Join(homeDir, "Library", "Application Support", "InvoiceManager")
+		} else {
+			// Fallback if we can't get the home directory
+			a.baseDataDir = "data"
+		}
+	} else {
+		// For Windows and other platforms, continue using the existing "data" directory
+		a.baseDataDir = "data"
+	}
+
+	// Ensure the base directory exists
+	os.MkdirAll(a.baseDataDir, os.ModePerm)
+}
+
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
 // getCompanyDataPath returns the file path for the given company and file type.
-func getCompanyDataPath(company, fileType string) string {
+func (a *App) getCompanyDataPath(company, fileType string) string {
 	company = strings.ToLower(company)
-	// This constructs paths like: data/dhanchha/dhanchha_invoices.json or data/dhanchha/dhanchha_info.json
-	return filepath.Join("data", company, fmt.Sprintf("%s_%s.json", company, fileType))
+	// This constructs paths like: baseDataDir/dhanchha/dhanchha_invoices.json
+	return filepath.Join(a.baseDataDir, company, fmt.Sprintf("%s_%s.json", company, fileType))
+}
+
+// ensureCompanyDirExists ensures that the company directory exists
+func (a *App) ensureCompanyDirExists(company string) error {
+	companyDir := filepath.Join(a.baseDataDir, strings.ToLower(company))
+	return os.MkdirAll(companyDir, os.ModePerm)
 }
 
 // loadCompanyData loads invoices and company info from file.
 func (a *App) loadCompanyData(company string) error {
-	companyDir := filepath.Join("data", strings.ToLower(company))
-	os.MkdirAll(companyDir, os.ModePerm)
+	company = strings.ToLower(company)
 
-	invoicesPath := getCompanyDataPath(company, "invoices")
+	// Ensure company directory exists
+	if err := a.ensureCompanyDirExists(company); err != nil {
+		return err
+	}
+
+	invoicesPath := a.getCompanyDataPath(company, "invoices")
 	if data, err := os.ReadFile(invoicesPath); err == nil {
 		var invoices []Invoice
 		if err := json.Unmarshal(data, &invoices); err == nil {
-			a.companies[strings.ToLower(company)] = invoices
+			a.companies[company] = invoices
 		}
 	}
 
-	infoPath := getCompanyDataPath(company, "info")
+	infoPath := a.getCompanyDataPath(company, "info")
 	if data, err := os.ReadFile(infoPath); err == nil {
 		var companyInfo CompanyInfo
 		if err := json.Unmarshal(data, &companyInfo); err == nil {
-			a.companyInfos[strings.ToLower(company)] = companyInfo
+			a.companyInfos[company] = companyInfo
 		}
 	}
 
@@ -135,12 +170,22 @@ func (a *App) loadCompanyData(company string) error {
 // saveCompanyData writes the company data back to file.
 func (a *App) saveCompanyData(company string) error {
 	companyKey := strings.ToLower(company)
+
+	// Ensure company directory exists
+	if err := a.ensureCompanyDirExists(companyKey); err != nil {
+		return err
+	}
+
 	if data, err := json.MarshalIndent(a.companies[companyKey], "", "  "); err == nil {
-		os.WriteFile(getCompanyDataPath(company, "invoices"), data, 0644)
+		if err := os.WriteFile(a.getCompanyDataPath(companyKey, "invoices"), data, 0644); err != nil {
+			return err
+		}
 	}
 
 	if data, err := json.MarshalIndent(a.companyInfos[companyKey], "", "  "); err == nil {
-		os.WriteFile(getCompanyDataPath(company, "info"), data, 0644)
+		if err := os.WriteFile(a.getCompanyDataPath(companyKey, "info"), data, 0644); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -302,7 +347,13 @@ func (a *App) UpdateInvoiceAmounts(company string, invoiceNo string, paidAmount 
 // ExportCSV exports invoice data to a CSV file for the given company.
 func (a *App) ExportCSV(company string) (string, error) {
 	company = strings.ToLower(company)
-	filePath := filepath.Join("data", company, "invoices_export.csv")
+
+	// Ensure company directory exists
+	if err := a.ensureCompanyDirExists(company); err != nil {
+		return "", err
+	}
+
+	filePath := filepath.Join(a.baseDataDir, company, "invoices_export.csv")
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", err
@@ -351,14 +402,14 @@ func (a *App) SaveInvoicePDF(company string, invoiceNo string, pdfBase64 string)
 			// Try to create the directory
 			if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
 				// If we can't create the directory, fall back to the default path
-				pdfDir = filepath.Join("data", company, "pdf")
+				pdfDir = filepath.Join(a.baseDataDir, company, "pdf")
 				if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
 					return err
 				}
 			}
 		}
 	} else {
-		pdfDir = filepath.Join("data", company, "pdf")
+		pdfDir = filepath.Join(a.baseDataDir, company, "pdf")
 		if err := os.MkdirAll(pdfDir, os.ModePerm); err != nil {
 			return err
 		}
@@ -408,18 +459,43 @@ func (a *App) GeneratePDF(company string, invoiceNo string) (string, error) {
 	if err := a.SaveInvoicePDF(company, invoiceNo, dummyPDFBase64); err != nil {
 		return "", err
 	}
-	pdfPath := filepath.Join("data", strings.ToLower(company), "pdf", fmt.Sprintf("%s.pdf", invoiceNo))
+
+	company = strings.ToLower(company)
+	// Sanitize the invoice number for the filename
+	safeInvoiceNo := strings.ReplaceAll(invoiceNo, "/", "-")
+
+	// Get the PDF directory
+	var pdfDir string
+	if info, ok := a.companyInfos[company]; ok && info.PDFSavePath != "" && info.PDFSavePath != "" {
+		pdfDir = info.PDFSavePath
+	} else {
+		pdfDir = filepath.Join(a.baseDataDir, company, "pdf")
+	}
+
+	pdfPath := filepath.Join(pdfDir, fmt.Sprintf("%s.pdf", safeInvoiceNo))
 	return pdfPath, nil
 }
 
 // SetCompanyPDFSavePath updates the PDF save path for a company.
 func (a *App) SetCompanyPDFSavePath(company string, initialPath string) (string, error) {
+	// If initialPath is empty, try to use a sensible default
+	if initialPath == "" {
+		if runtime.GOOS == "darwin" {
+			homeDir, err := os.UserHomeDir()
+			if err == nil {
+				initialPath = filepath.Join(homeDir, "Documents")
+			}
+		}
+	}
+
 	// Open a directory dialog for the user to select a folder.
-	selectedPath, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+	selectedPath, err := wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
 		Title:            "Select PDF Save Path",
-		DefaultDirectory: initialPath, // This can be empty or a previously set path.
+		DefaultDirectory: initialPath,
 	})
-	if err != nil {
+
+	// If the user cancels, don't update anything
+	if err != nil || selectedPath == "" {
 		return "", err
 	}
 
@@ -486,7 +562,6 @@ func (a *App) UpdateInvoice(company string, invoiceNo string, input InvoiceInput
 	invoiceDate, err := time.Parse("2006-01-02", input.InvoiceDate)
 	if err != nil {
 		// If there's an error parsing the date, don't update the invoice date
-		// You could return an error here instead if you prefer
 	} else {
 		a.companies[company][existingInvoiceIndex].InvoiceDate = invoiceDate
 	}

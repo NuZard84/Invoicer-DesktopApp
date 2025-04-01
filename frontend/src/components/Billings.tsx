@@ -190,12 +190,30 @@ const Billings: React.FC = () => {
     }
   };
 
-  const handleEditInvoice = (invoiceNo: string) => {
-    navigate(`/company/${company}/edit-invoice/${invoiceNo}`);
+  const handleEditInvoice = async (invoiceNo: string) => {
+    try {
+      // Get the full invoice details before navigating
+      const invoiceDetail = await GetInvoiceDetail(company!, invoiceNo);
+      if (!invoiceDetail) {
+        alert("Could not find invoice details");
+        return;
+      }
+
+      // Encode the invoice number for the URL
+      const encodedInvoiceNo = encodeURIComponent(invoiceNo);
+      navigate(`/company/${company}/edit-invoice/${encodedInvoiceNo}`);
+    } catch (error) {
+      console.error("Error loading invoice details:", error);
+      alert("Failed to load invoice details");
+    }
   };
 
   const handlePrintInvoice = async (invoiceNo: string) => {
     try {
+      if (isPrinting) {
+        return;
+      }
+
       setIsPrinting(invoiceNo);
 
       // Get the full invoice details
@@ -218,15 +236,19 @@ const Billings: React.FC = () => {
         customerName: invoiceDetail.customerName,
         customerAddress: invoiceDetail.customerAddress,
         items: formattedItems,
+        transactionType: invoiceDetail.transactionType,
       };
 
       setSelectedInvoice(formattedInvoice);
 
-      // PrintButton will automatically trigger the print dialog when it renders
+      // Add a timeout to reset the state if printing takes too long or is canceled
+      setTimeout(() => {
+        handlePrintComplete();
+      }, 1000);
     } catch (error) {
       console.error("Error preparing to print invoice:", error);
       alert("Failed to prepare invoice for printing");
-      setIsPrinting(null);
+      handlePrintComplete();
     }
   };
 
@@ -432,7 +454,11 @@ const Billings: React.FC = () => {
                     </button>
                     <button
                       onClick={() => handlePrintInvoice(inv.invoiceNo)}
-                      className="bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors"
+                      className={`bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors ${
+                        isPrinting === inv.invoiceNo
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
                       title="Print Invoice"
                       disabled={isPrinting !== null}
                     >
@@ -482,7 +508,10 @@ const Billings: React.FC = () => {
         <div className="hidden">
           <PrintButton
             formData={selectedInvoice}
-            companyData={companyData}
+            companyData={{
+              ...companyData,
+              transactionType: selectedInvoice.transactionType,
+            }}
             flages={{ isPanNo: true, isBankDetails: true }}
             onPrintComplete={handlePrintComplete}
           />

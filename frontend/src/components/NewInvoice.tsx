@@ -19,7 +19,6 @@ export interface CompanyInfo {
   name: string;
   companyName: string;
   companyAddress: string;
-  gstNo: string;
   companyLogo: string | null;
   invoiceNo: string;
   invoiceDate: string;
@@ -93,32 +92,35 @@ const NewInvoice: React.FC = () => {
   const loadInvoiceData = async (company: string, invoiceId: string) => {
     try {
       const invoiceData = await GetInvoiceDetail(company, invoiceId);
-      if (invoiceData) {
-        // Format the items array to match the expected form structure
-        const formattedItems = invoiceData.items.map((item: any) => ({
-          description: item.description,
-          amount: item.amount.toString(),
-        }));
+      if (!invoiceData) {
+        throw new Error("Could not find invoice details");
+      }
 
-        setFormData({
-          invoiceNo: invoiceData.invoiceNo,
-          // Format the date to YYYY-MM-DD for the date input
-          invoiceDate: new Date(invoiceData.createdAt)
-            .toISOString()
-            .split("T")[0],
-          customerName: invoiceData.customerName,
-          customerAddress: invoiceData.customerAddress,
-          items: formattedItems,
-        });
+      // Format the items array to match the expected form structure
+      const formattedItems = invoiceData.items.map((item: any) => ({
+        description: item.description,
+        amount: item.amount.toString(),
+      }));
 
-        // Set transaction type if it exists in the invoice data
-        if (invoiceData.transactionType) {
-          setTransactionType(invoiceData.transactionType);
-        }
+      setFormData({
+        invoiceNo: invoiceData.invoiceNo,
+        // Format the date to YYYY-MM-DD for the date input
+        invoiceDate: new Date(invoiceData.invoiceDate)
+          .toISOString()
+          .split("T")[0],
+        customerName: invoiceData.customerName,
+        customerAddress: invoiceData.customerAddress,
+        items: formattedItems,
+      });
+
+      // Set transaction type if it exists in the invoice data
+      if (invoiceData.transactionType) {
+        setTransactionType(invoiceData.transactionType);
       }
     } catch (error) {
       console.error("Error loading invoice data:", error);
-      alert("Failed to load invoice data");
+      alert("Failed to load invoice data. Please try again.");
+      navigate(`/company/${company}/billings`);
     }
   };
 

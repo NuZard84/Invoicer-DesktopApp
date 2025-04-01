@@ -13,7 +13,6 @@ export interface CompanyInfo {
   name: string;
   companyName: string;
   companyAddress: string;
-  gstNo: string;
   companyLogo: string | null;
   transactionType: string;
   panNo: string;
@@ -300,6 +299,7 @@ export default function DefaultPDF({
   if (!formData || !companyData) {
     return null;
   }
+  console.log("in default pdf", companyData);
 
   try {
     return (

@@ -14,7 +14,6 @@ interface CompanyInfo {
   name: string;
   companyName: string;
   companyAddress: string;
-  gstNo: string;
   companyLogo: string | null;
   transactionType: string;
   panNo: string;
@@ -480,7 +479,7 @@ export default function DhanchhaPDF({
   if (!formData || !companyData) {
     return null;
   }
-
+  console.log("in dhanchha pdf", companyData);
   return (
     <div className="max-w-2xl mx-auto my-10">
       <div className="w-full h-[850px]">
