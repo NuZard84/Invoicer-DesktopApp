@@ -532,27 +532,40 @@ func (a *App) GeneratePDFFromInvoice(company string, invoiceNo string, pdfBase64
 }
 
 // UpdateInvoice updates an existing invoice with new data
-func (a *App) UpdateInvoice(company string, invoiceNo string, input InvoiceInput) error {
+func (a *App) UpdateInvoice(company string, originalInvoiceNo string, input InvoiceInput) error {
 	company = strings.ToLower(company)
 	invoices, ok := a.companies[company]
 	if !ok {
 		return fmt.Errorf("company data not found for: %s", company)
 	}
 
-	// Verify the invoice exists
+	// Check if invoice number has been changed
+	if originalInvoiceNo != input.InvoiceNo {
+		// Verify the new invoice number doesn't already exist
+		isUnique, err := a.IsInvoiceNumberUnique(company, input.InvoiceNo)
+		if err != nil {
+			return err
+		}
+		if !isUnique {
+			return fmt.Errorf("invoice number %s already exists for company %s", input.InvoiceNo, company)
+		}
+	}
+
+	// Verify the original invoice exists
 	var existingInvoiceIndex = -1
 	for i, inv := range invoices {
-		if inv.InvoiceNo == invoiceNo {
+		if inv.InvoiceNo == originalInvoiceNo {
 			existingInvoiceIndex = i
 			break
 		}
 	}
 
 	if existingInvoiceIndex == -1 {
-		return fmt.Errorf("invoice not found: %s", invoiceNo)
+		return fmt.Errorf("invoice not found: %s", originalInvoiceNo)
 	}
 
-	// Update the invoice with new data
+	// Update the invoice with new data including invoice number
+	a.companies[company][existingInvoiceIndex].InvoiceNo = input.InvoiceNo
 	a.companies[company][existingInvoiceIndex].CustomerName = input.CustomerName
 	a.companies[company][existingInvoiceIndex].CustomerAddress = input.CustomerAddress
 	a.companies[company][existingInvoiceIndex].Items = input.Items

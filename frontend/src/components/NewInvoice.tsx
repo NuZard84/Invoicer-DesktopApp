@@ -62,6 +62,7 @@ const NewInvoice: React.FC = () => {
   const [transactionType, setTransactionType] = useState<string>("cash");
   const [isPanNo, setIsPanNo] = useState(true);
   const [isBankDetails, setIsBankDetails] = useState(true);
+  const [originalInvoiceNo, setOriginalInvoiceNo] = useState<string>("");
 
   useEffect(() => {
     if (!company) return;
@@ -95,6 +96,9 @@ const NewInvoice: React.FC = () => {
       if (!invoiceData) {
         throw new Error("Could not find invoice details");
       }
+
+      // Store the original invoice number
+      setOriginalInvoiceNo(invoiceData.invoiceNo);
 
       // Format the items array to match the expected form structure
       const formattedItems = invoiceData.items.map((item: any) => ({
@@ -190,8 +194,8 @@ const NewInvoice: React.FC = () => {
 
     try {
       if (isEditing) {
-        // If editing existing invoice, update the data only
-        await UpdateInvoice(company, formData.invoiceNo, invoiceData);
+        // If editing existing invoice, update the data using the original invoice number
+        await UpdateInvoice(company, originalInvoiceNo, invoiceData);
         alert("Invoice updated successfully!");
         navigate(`/company/${company}/billings`);
       } else {
@@ -322,7 +326,6 @@ const NewInvoice: React.FC = () => {
                     value={formData.invoiceNo}
                     required
                     onChange={handleInputChange}
-                    readOnly={isEditing} // Make read-only when editing
                   />
                   {errorMessage && (
                     <div className="flex items-center text-red-500 mt-1 text-sm">

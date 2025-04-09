@@ -40,9 +40,9 @@ const Billings: React.FC = () => {
   const generateFiscalYearOptions = () => {
     const options = [];
 
-    // Start from fiscal year 2024-25 and generate options for the next 15 years
+    // Start from fiscal year 2025-26 and generate options for the next 15 years
     for (let i = 0; i < 15; i++) {
-      const year = 2024 + i;
+      const year = 2025 + i;
       options.push(`${year}-${(year + 1).toString().slice(-2)}`);
     }
 
@@ -293,213 +293,228 @@ const Billings: React.FC = () => {
     .reduce((acc, inv) => acc + parseFloat(inv.total), 0);
 
   return (
-    <div className="p-4 relative">
-      <div className="absolute right-10 top-10">
-        <div className="flex flex-row justify-end gap-2">
-          <div className="text-green-400 text-lg">Total Paid Amount </div>
-          <div className="text-lg">
-            {paidAmount === 0 ? "00.00" : paidAmount.toFixed(2)}
+    <div className="flex flex-col h-[97vh] p-4 relative">
+      {/* Header section - fixed at top */}
+      <div className="flex-none mb-4">
+        <div className="absolute right-10 top-10">
+          <div className="flex flex-row justify-end gap-2">
+            <div className="text-green-400 text-lg">Total Paid Amount </div>
+            <div className="text-lg">
+              {paidAmount === 0 ? "00.00" : paidAmount.toFixed(2)}
+            </div>
+          </div>
+          <div className="flex flex-row gap-2">
+            <div className="text-red-400 text-lg">Total Unpaid Amount </div>
+            <div className="text-lg">
+              {unPaidAmount === 0 ? "00.00" : unPaidAmount.toFixed(2)}
+            </div>
           </div>
         </div>
-        <div className="flex flex-row gap-2">
-          <div className="text-red-400 text-lg">Total Unpaid Amount </div>
-          <div className="text-lg">
-            {unPaidAmount === 0 ? "00.00" : unPaidAmount.toFixed(2)}
-          </div>
-        </div>
-      </div>
-      <h1 className="text-3xl mb-4">Billing History</h1>
+        <h1 className="text-3xl mb-4">Billing History</h1>
 
-      <div className="flex flex-row items-center gap-4 mb-4">
-        <button
-          onClick={handleExportCSV}
-          disabled={isExporting || filteredInvoices.length === 0}
-          className={`bg-mp hover:bg-mp-dark px-3 py-2 text-white rounded-md transition-colors ${
-            isExporting || filteredInvoices.length === 0
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }`}
-        >
-          {isExporting ? "Exporting..." : "Export CSV"}
-        </button>
-
-        <div className="relative">
-          <select
-            value={selectedFiscalYear}
-            onChange={(e) => setSelectedFiscalYear(e.target.value)}
-            className="bg-cbg dark:bg-cbg-dark border border-gf/30 dark:border-gf-dark/30 rounded-md px-3 py-2"
+        <div className="flex flex-row items-center gap-4">
+          <button
+            onClick={handleExportCSV}
+            disabled={isExporting || filteredInvoices.length === 0}
+            className={`bg-mp hover:bg-mp-dark px-3 py-2 text-white rounded-md transition-colors ${
+              isExporting || filteredInvoices.length === 0
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
           >
-            {fiscalYearOptions.map((year) => (
-              <option key={year} value={year}>
-                FY {year}
-              </option>
-            ))}
-          </select>
-        </div>
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </button>
 
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search invoices..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-cbg dark:bg-cbg-dark border border-gf/30 dark:border-gf-dark/30 rounded-md pl-10 pr-3 py-2 w-64"
-          />
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search size={16} className="text-gf dark:text-gf-dark" />
+          <div className="relative">
+            <select
+              value={selectedFiscalYear}
+              onChange={(e) => setSelectedFiscalYear(e.target.value)}
+              className="bg-cbg dark:bg-cbg-dark border border-gf/30 dark:border-gf-dark/30 rounded-md px-3 py-2"
+            >
+              {fiscalYearOptions.map((year) => (
+                <option key={year} value={year}>
+                  FY {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search invoices..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-cbg dark:bg-cbg-dark border border-gf/30 dark:border-gf-dark/30 rounded-md pl-10 pr-3 py-2 w-64"
+            />
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search size={16} className="text-gf dark:text-gf-dark" />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="relative">
-        <table className="min-w-full bg-bg dark:bg-bg-dark border border-gf/30 dark:border-gf-dark/30">
-          <thead>
-            <tr className="bg-lp dark:bg-lp-dark text-mp-dark dark:text-white">
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                Serial #
-              </th>
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                Invoice #
-              </th>
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                Date
-              </th>
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                Customer
-              </th>
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                Total
-              </th>
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                Paid Amount
-              </th>
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                TDS Amount
-              </th>
-              <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInvoices.map((inv, index) => (
-              <tr
-                key={index}
-                className={
-                  index % 2 === 0
-                    ? "bg-cbg dark:bg-cbg-dark"
-                    : "bg-bg dark:bg-bg-dark"
-                }
-                onDoubleClick={() => handleEditInvoice(inv.invoiceNo)}
-              >
-                <td className="w-24 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  {index + 1}
-                </td>
-                <td className="w-28 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  {inv.invoiceNo}
-                </td>
-                <td className="w-32 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  {inv.invoiceDate
-                    ? new Date(inv.invoiceDate).toLocaleString().split(",")[0]
-                    : new Date(inv.createdAt).toLocaleString().split(",")[0]}
-                </td>
-                <td className="w-96 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  {inv.customerName}
-                </td>
-                <td className="w-52 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  {parseFloat(inv.total).toFixed(2)}
-                </td>
-                <td className="w-52 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  <input
-                    type="number"
-                    className="w-full text-center bg-inherit focus:outline-none focus:ring-1 focus:ring-mp rounded"
-                    value={inv.paidAmount || 0}
-                    onChange={(e) =>
-                      handleFieldChange(
-                        inv.invoiceNo,
-                        "paidAmount",
-                        e.target.value
-                      )
-                    }
-                    onBlur={() => {
-                      const newTDS = inv.total - inv.paidAmount;
-                      handleUpdateAmounts(
-                        inv.invoiceNo,
-                        inv.paidAmount,
-                        newTDS
-                      );
-                    }}
-                  />
-                </td>
-                <td className="w-52 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  {(inv.total - inv.paidAmount).toFixed(2)}
-                </td>
-                <td className="py-2 w-36 border border-gf/30 dark:border-gf-dark/30 text-center">
-                  <div className="flex justify-center space-x-2">
-                    <button
-                      onClick={() => {
-                        updateInvoicePaymentStatus(company!, inv.invoiceNo);
-                      }}
-                      className={`${
-                        inv.isPaid
-                          ? "bg-green-200 dark:bg-green-800/30"
-                          : "bg-red-200 dark:bg-red-800/30"
-                      } ${
-                        inv.isPaid
-                          ? "text-green-700 dark:text-green-400"
-                          : "text-red-700 dark:text-red-400"
-                      } rounded-xl px-3 py-1 transition-colors`}
-                    >
-                      {inv.isPaid ? "paid" : "unpaid"}
-                    </button>
-                    <button
-                      onClick={() => handlePrintInvoice(inv.invoiceNo)}
-                      className={`bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors ${
-                        isPrinting === inv.invoiceNo
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      }`}
-                      title="Print Invoice"
-                      disabled={isPrinting !== null}
-                    >
-                      <Printer size={16} />
-                    </button>
-                  </div>
-                </td>
+      {/* Table container with proper scroll behavior */}
+      <div className="flex flex-col flex-1 overflow-hidden mt-2">
+        <div className="overflow-auto pb-6 flex-1">
+          <table className="min-w-full bg-bg dark:bg-bg-dark border border-gf/30 dark:border-gf-dark/30">
+            <thead className="sticky top-[-1px] z-10">
+              <tr className="bg-lp dark:bg-lp-dark text-mp-dark dark:text-white">
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  Serial #
+                </th>
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  Invoice #
+                </th>
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  Date
+                </th>
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  Customer
+                </th>
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  Total
+                </th>
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  Paid Amount
+                </th>
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  TDS Amount
+                </th>
+                <th className="py-2 border border-gf/40 dark:border-gf-dark/40">
+                  Actions
+                </th>
               </tr>
-            ))}
-            {filteredInvoices.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="text-center py-4 text-gf dark:text-gf-dark"
+            </thead>
+            <tbody>
+              {filteredInvoices.map((inv, index) => (
+                <tr
+                  key={index}
+                  className={
+                    index % 2 === 0
+                      ? "bg-cbg dark:bg-cbg-dark"
+                      : "bg-bg dark:bg-bg-dark"
+                  }
+                  onDoubleClick={() => handleEditInvoice(inv.invoiceNo)}
                 >
-                  No invoices found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* Sticky Footer */}
-        <div className="sticky bottom-0 bg-lp dark:bg-lp-dark border-gf/40 dark:border-gf-dark/40 flex">
-          <table className="min-w-full self-end">
-            <tfoot>
-              <tr className="text-mp-dark dark:text-white ">
-                <td className="w-[48.4%] flex items-center justify-center"></td>
-                <td className="py-2 w-56 border border-gf/40 dark:border-gf-dark/40 text-center font-bold">
-                  {totalAmount.toFixed(2)}
-                </td>
-                <td className="py-2 w-56 border border-gf/40 dark:border-gf-dark/40 text-center font-bold">
-                  {totalPaidAmount.toFixed(2)}
-                </td>
-                <td className="py-2 w-56 border border-gf/40 dark:border-gf-dark/40 text-center font-bold">
-                  {totalTDSAmount.toFixed(2)}
-                </td>
-                <td className="w-[9.7%]"></td>
-              </tr>
-            </tfoot>
+                  <td className="w-24 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    {index + 1}
+                  </td>
+                  <td className="w-28 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    {inv.invoiceNo}
+                  </td>
+                  <td className="w-32 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    {inv.invoiceDate
+                      ? new Date(inv.invoiceDate).toLocaleString().split(",")[0]
+                      : new Date(inv.createdAt).toLocaleString().split(",")[0]}
+                  </td>
+                  <td className="w-96 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    {inv.customerName}
+                  </td>
+                  <td className="w-52 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    {parseFloat(inv.total).toFixed(2)}
+                  </td>
+                  <td className="w-52 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    <input
+                      type="number"
+                      className="w-full text-center bg-inherit focus:outline-none focus:ring-1 focus:ring-mp rounded"
+                      value={inv.paidAmount || 0}
+                      onChange={(e) =>
+                        handleFieldChange(
+                          inv.invoiceNo,
+                          "paidAmount",
+                          e.target.value
+                        )
+                      }
+                      onBlur={() => {
+                        const newTDS = inv.total - inv.paidAmount;
+                        handleUpdateAmounts(
+                          inv.invoiceNo,
+                          inv.paidAmount,
+                          newTDS
+                        );
+                      }}
+                    />
+                  </td>
+                  <td className="w-52 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    {(inv.total - inv.paidAmount).toFixed(2)}
+                  </td>
+                  <td className="py-2 w-36 border border-gf/30 dark:border-gf-dark/30 text-center">
+                    <div className="flex justify-center space-x-2">
+                      <button
+                        onClick={() => {
+                          updateInvoicePaymentStatus(company!, inv.invoiceNo);
+                        }}
+                        className={`${
+                          inv.isPaid
+                            ? "bg-green-200 dark:bg-green-800/30"
+                            : "bg-red-200 dark:bg-red-800/30"
+                        } ${
+                          inv.isPaid
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-red-700 dark:text-red-400"
+                        } rounded-xl px-3 py-1 transition-colors`}
+                      >
+                        {inv.isPaid ? "paid" : "unpaid"}
+                      </button>
+                      <button
+                        onClick={() => handlePrintInvoice(inv.invoiceNo)}
+                        className={`bg-blue-200 dark:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-xl p-1 transition-colors ${
+                          isPrinting === inv.invoiceNo
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }`}
+                        title="Print Invoice"
+                        disabled={isPrinting !== null}
+                      >
+                        <Printer size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredInvoices.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="text-center py-4 text-gf dark:text-gf-dark"
+                  >
+                    No invoices found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
           </table>
+        </div>
+
+        {/* Footer - fixed at bottom */}
+        <div className="flex-none bg-lp dark:bg-lp-dark border-t border-gf/40 dark:border-gf-dark/40 px-4 py-3 rounded-lg backdrop-blur-lg mt-2">
+          <div className="flex justify-around gap-8">
+            <div className="flex flex-row gap-6 items-end">
+              <span className="text-mp-dark dark:text-white font-semibold">
+                Total Amount:
+              </span>
+              <span className="text-mp-dark dark:text-white font-bold text-lg">
+                {totalAmount.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex flex-row gap-6 items-end">
+              <span className="text-mp-dark dark:text-white font-semibold">
+                Total Paid:
+              </span>
+              <span className="text-mp-dark dark:text-white font-bold text-lg">
+                {totalPaidAmount.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex flex-row gap-6 items-end">
+              <span className="text-mp-dark dark:text-white font-semibold">
+                Total TDS:
+              </span>
+              <span className="text-mp-dark dark:text-white font-bold text-lg">
+                {totalTDSAmount.toFixed(2)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
