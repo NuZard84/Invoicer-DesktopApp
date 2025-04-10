@@ -136,18 +136,30 @@ export const InvoicePDF = ({
     0
   );
 
+  // Check if company name exists
+  const hasCompanyName = !!companyData.companyName;
+  // Check if company address exists
+  const hasCompanyAddress = !!companyData.companyAddress;
+  // Check if company logo exists
+  const hasCompanyLogo = !!companyData.companyLogo;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.leftHeader}>
-            <Text style={styles.companyName}>{companyData.name}</Text>
-            {companyData.companyAddress.split(",").map((line, index) => (
-              <Text key={index} style={styles.addressLine}>
-                {line.trim()}
+            {hasCompanyName && (
+              <Text style={styles.companyName}>
+                {companyData.companyName.toUpperCase()}
               </Text>
-            ))}
+            )}
+            {hasCompanyAddress &&
+              companyData.companyAddress.split(",").map((line, index) => (
+                <Text key={index} style={styles.addressLine}>
+                  {line.trim()}
+                </Text>
+              ))}
           </View>
           <View style={styles.rightHeader}>
             <Text style={styles.invoiceTitle}>INVOICE</Text>
@@ -171,7 +183,9 @@ export const InvoicePDF = ({
                   <Text style={styles.detailLabel}>Invoice No.:-</Text>
                   <Text style={styles.detailLabel}>Date:-</Text>
                   <Text style={styles.detailLabel}>Transaction Type:-</Text>
-                  <Text style={styles.detailLabel}>PAN:-</Text>
+                  {flages.isPanNo && companyData.panNo && (
+                    <Text style={styles.detailLabel}>PAN:-</Text>
+                  )}
                 </View>
                 <View
                   style={{
@@ -186,7 +200,9 @@ export const InvoicePDF = ({
                   <Text style={styles.detailValue}>
                     {companyData.transactionType}
                   </Text>
-                  <Text style={styles.detailValue}>{companyData.panNo}</Text>
+                  {flages.isPanNo && companyData.panNo && (
+                    <Text style={styles.detailValue}>{companyData.panNo}</Text>
+                  )}
                 </View>
               </View>
             </View>
@@ -265,26 +281,33 @@ export const InvoicePDF = ({
           </View>
         </View>
 
-        {/* Bank Details */}
-        {flages.isBankDetails && (
-          <View style={styles.bankDetails}>
-            <Text style={styles.bankDetailsText}>{companyData.name}</Text>
-            <Text style={styles.bankDetailsText}>{companyData.bankName}</Text>
-            <Text style={styles.bankDetailsText}>
-              A/c No. {companyData.accountNo}
-            </Text>
-            <Text style={styles.bankDetailsText}>
-              IFSC : {companyData.ifsc}
-            </Text>
+        {/* Bank Details - only show if the data exists */}
+        {flages.isBankDetails &&
+          companyData.bankName &&
+          companyData.accountNo &&
+          companyData.ifsc && (
+            <View style={styles.bankDetails}>
+              {companyData.name && (
+                <Text style={styles.bankDetailsText}>{companyData.name}</Text>
+              )}
+              <Text style={styles.bankDetailsText}>{companyData.bankName}</Text>
+              <Text style={styles.bankDetailsText}>
+                A/c No. {companyData.accountNo}
+              </Text>
+              <Text style={styles.bankDetailsText}>
+                IFSC : {companyData.ifsc}
+              </Text>
+            </View>
+          )}
+
+        {/* Signature Section - only show if name exists */}
+        {companyData.name && (
+          <View style={styles.signatureSection}>
+            <View style={styles.signatureContainer}>
+              <Text style={styles.signatureName}>{companyData.name}</Text>
+            </View>
           </View>
         )}
-
-        {/* Signature Section */}
-        <View style={styles.signatureSection}>
-          <View style={styles.signatureContainer}>
-            <Text style={styles.signatureName}>{companyData.name}</Text>
-          </View>
-        </View>
       </Page>
     </Document>
   );

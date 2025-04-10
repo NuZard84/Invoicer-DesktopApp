@@ -75,10 +75,17 @@ const NewInvoice: React.FC = () => {
         );
         if (foundData) {
           setCompanyData(foundData);
+        } else {
+          // Reset if no data found for this company
+          setCompanyData(null);
         }
       } catch (err) {
         console.error("Error parsing company data:", err);
+        setCompanyData(null);
       }
+    } else {
+      // No data in localStorage
+      setCompanyData(null);
     }
   }, [company]);
 

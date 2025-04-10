@@ -53,7 +53,13 @@ const Billings: React.FC = () => {
 
   useEffect(() => {
     if (company) {
+      // Reset all state variables when company changes
       setCompanyString(company);
+      setInvoices([]);
+      setFilteredInvoices([]);
+      setSelectedInvoice(null);
+      setIsPrinting(null);
+
       // Set default fiscal year
       setSelectedFiscalYear(getCurrentFiscalYear());
 
@@ -66,12 +72,20 @@ const Billings: React.FC = () => {
             (item: any) =>
               item.companyName?.toLowerCase() === company.toLowerCase()
           );
+
           if (foundData) {
             setCompanyData(foundData);
+          } else {
+            // Reset if no data found for this company
+            setCompanyData(null);
           }
         } catch (err) {
           console.error("Error parsing company data:", err);
+          setCompanyData(null);
         }
+      } else {
+        // No data in localStorage
+        setCompanyData(null);
       }
     }
   }, [company]);
@@ -79,11 +93,22 @@ const Billings: React.FC = () => {
   useEffect(() => {
     const fetchInvoiceData = async () => {
       try {
+        if (!companyString) return;
+
         const res = await GetInvoices(companyString);
-        setInvoices(res);
-        filterInvoices(res, searchQuery, selectedFiscalYear);
+        if (res && Array.isArray(res)) {
+          setInvoices(res);
+          filterInvoices(res, searchQuery, selectedFiscalYear);
+        } else {
+          // Handle empty response or undefined
+          setInvoices([]);
+          setFilteredInvoices([]);
+        }
       } catch (error) {
-        console.log(error);
+        console.log("Error fetching invoices:", error);
+        // Reset to empty arrays on error
+        setInvoices([]);
+        setFilteredInvoices([]);
       }
     };
 

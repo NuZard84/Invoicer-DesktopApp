@@ -105,12 +105,17 @@ func NewApp() *App {
 func (a *App) initBaseDataDir() {
 	// Determine if running on macOS, Windows, or Linux
 	if runtime.GOOS == "darwin" {
-		// For macOS, use the Application Support directory
-		homeDir, err := os.UserHomeDir()
+		// For macOS, find the application bundle directory
+		// Get the path to the current executable
+		execPath, err := os.Executable()
 		if err == nil {
-			a.baseDataDir = filepath.Join(homeDir, "Library", "Application Support", "InvoiceManager")
+			// Navigate up to the app bundle's Contents directory
+			// Typical structure: YourApp.app/Contents/MacOS/executable
+			bundlePath := filepath.Dir(filepath.Dir(filepath.Dir(execPath)))
+			// Create a data directory inside the app bundle
+			a.baseDataDir = filepath.Join(bundlePath, "Contents", "Resources", "data")
 		} else {
-			// Fallback if we can't get the home directory
+			// Fallback if we can't get the executable path
 			a.baseDataDir = "data"
 		}
 	} else {
@@ -119,7 +124,16 @@ func (a *App) initBaseDataDir() {
 	}
 
 	// Ensure the base directory exists
-	os.MkdirAll(a.baseDataDir, os.ModePerm)
+	err := os.MkdirAll(a.baseDataDir, os.ModePerm)
+	if err != nil {
+		// Log the error or handle it appropriately
+		fmt.Printf("Error creating data directory: %v\n", err)
+		// Fallback to current directory if we can't create the intended directory
+		a.baseDataDir = "data"
+		os.MkdirAll(a.baseDataDir, os.ModePerm)
+	}
+
+	fmt.Printf("Using data directory: %s\n", a.baseDataDir)
 }
 
 func (a *App) startup(ctx context.Context) {
