@@ -1,0 +1,53 @@
+name: Build Wails App for macOS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Xcode Command Line Tools
+        run: xcode-select --install || echo "Xcode tools already installed"
+
+      - name: Install Dependencies
+        run: |
+          brew install go node
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          export PATH="$(go env GOPATH)/bin:$PATH"
+
+      - name: Install Wails
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH  # Ensure Wails is in PATH
+          export PATH="$(go env GOPATH)/bin:$PATH"  # Apply immediately
+
+      - name: Verify Wails Installation
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          which wails
+          wails doctor
+
+      - name: Build macOS App
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          wails build -platform darwin
+          
+      - name: Check Build Output
+        run: ls -lah ./build/bin/invoicer.app
+
+      - name: Debug Build Output
+        run: |
+          ls -R ./build/bin
+
+      - name: Upload macOS Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvoicerApp-macos
+          path: ./build/bin/invoicer.app
