@@ -84,6 +84,8 @@ const Template: React.FC = () => {
     const stored = localStorage.getItem("userTemplateData");
     const parsed = stored ? JSON.parse(stored) : [];
 
+    // If we're in edit mode and no new logo was selected,
+    // make sure we keep the existing logo
     const updatedData = {
       ...formData,
       isTemplateFilled: true,
@@ -136,6 +138,11 @@ const Template: React.FC = () => {
     setIsTemplateFilled(false);
 
     alert("Company information has been reset successfully.");
+  };
+
+  const handleEdit = () => {
+    // Just switch to edit mode without clearing data
+    setIsTemplateFilled(false);
   };
 
   return (
@@ -194,6 +201,12 @@ const Template: React.FC = () => {
               </p>
 
               <div className="flex gap-4">
+                <button
+                  onClick={handleEdit}
+                  className="bg-blue-600 self-start px-3 py-2 rounded-lg text-white hover:bg-blue-500 mt-2 transition-colors"
+                >
+                  Edit Information
+                </button>
                 <button
                   onClick={handleReset}
                   className="bg-red-600 self-start px-3 py-2 rounded-lg text-white hover:bg-red-500 mt-2 transition-colors"
@@ -342,7 +355,7 @@ const Template: React.FC = () => {
                     id="company-logo"
                     type="file"
                     accept="image/*"
-                    required
+                    required={!formData.companyLogo}
                     className="hidden"
                     onChange={handleFileChange}
                   />
@@ -350,7 +363,7 @@ const Template: React.FC = () => {
                     htmlFor="company-logo"
                     className="cursor-pointer bg-mp text-white px-4 py-1 rounded-md w-fit hover:bg-mp-dark dark:bg-gray-800 hover:dark:bg-gray-700 transition-colors"
                   >
-                    Choose File
+                    {formData.companyLogo ? "Change Logo" : "Choose File"}
                   </label>
                   {fileName && (
                     <p className="dark:text-lp mt-1 text-sm">
