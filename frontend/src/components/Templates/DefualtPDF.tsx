@@ -151,7 +151,7 @@ export const InvoicePDF = ({
           <View style={styles.leftHeader}>
             {hasCompanyName && (
               <Text style={styles.companyName}>
-                {companyData.companyName.toUpperCase()}
+                {companyData.name.toUpperCase()}
               </Text>
             )}
             {hasCompanyAddress &&
