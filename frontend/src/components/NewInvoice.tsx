@@ -201,16 +201,12 @@ const NewInvoice: React.FC = () => {
 
     try {
       if (isEditing) {
-        // If editing existing invoice, update the data using the original invoice number
         await UpdateInvoice(company, originalInvoiceNo, invoiceData);
         alert("Invoice updated successfully!");
         navigate(`/company/${company}/billings`);
       } else {
-        // If creating new invoice, add the data only
         await AddInvoice(company, invoiceData);
         alert("Invoice created successfully!");
-
-        // Reset form for new invoice creation
         setFormData({
           invoiceNo: "",
           invoiceDate: "",
@@ -222,25 +218,20 @@ const NewInvoice: React.FC = () => {
     } catch (err: any) {
       console.error("Error handling invoice:", err);
 
-      // Check for duplicate invoice number error
-      if (err.message && err.message.includes("already exists")) {
+      // Wails returns Go errors as plain strings, not Error objects — handle both
+      const errMsg = err?.message || (typeof err === "string" ? err : "Unknown error");
+
+      if (errMsg.includes("already exists")) {
         setErrorMessage(
           "This invoice number already exists. Please use a different one."
         );
       } else {
-        alert("Failed to process invoice: " + err.message);
+        alert("Failed to process invoice: " + errMsg);
       }
     }
   };
 
   const generateAndSavePDF = async (invoiceData: any) => {
-    // Pass transaction type to the PDF component
-    const pdfData = {
-      ...invoiceData,
-      transactionType,
-    };
-
-    // Use the correct PDF component based on company name
     const PDFComponent = isDhanchhaTemplate ? (
       <DhanchhaPDFDoc
         formData={formData}
@@ -257,49 +248,34 @@ const NewInvoice: React.FC = () => {
       />
     );
 
-    // Generate the PDF blob using react-pdf
     const blob = await pdf(PDFComponent)?.toBlob();
     if (!blob) {
       throw new Error("Failed to generate PDF blob");
     }
 
-    // Convert blob to base64 string
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = async () => {
-      const base64data = reader.result?.toString();
-      if (!base64data) {
-        throw new Error("Failed to convert blob to base64");
-      }
-      // Remove the "data:application/pdf;base64," prefix if present
-      const base64Prefix = "data:application/pdf;base64,";
-      const pdfBase64 = base64data.startsWith(base64Prefix)
-        ? base64data.substring(base64Prefix.length)
-        : base64data;
+    // Wrap FileReader in a Promise so errors propagate to the caller's try/catch
+    const pdfBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => {
+        const base64data = reader.result?.toString();
+        if (!base64data) {
+          reject(new Error("Failed to convert PDF blob to base64"));
+          return;
+        }
+        const prefix = "data:application/pdf;base64,";
+        resolve(base64data.startsWith(prefix) ? base64data.substring(prefix.length) : base64data);
+      };
+      reader.onerror = () => reject(new Error("FileReader failed"));
+    });
 
-      // Call backend function to save the PDF file
-      if (isEditing) {
-        await GeneratePDFFromInvoice(company!, formData.invoiceNo, pdfBase64);
-        alert("Invoice updated and PDF generated successfully!");
-      } else {
-        await SaveInvoicePDF(company!, formData.invoiceNo, pdfBase64);
-        alert("Invoice created and PDF generated successfully!");
-      }
-
-      if (isEditing) {
-        // Navigate back to billings page after successful edit
-        navigate(`/company/${company}/billings`);
-      } else {
-        // Reset form for new invoice creation
-        setFormData({
-          invoiceNo: "",
-          invoiceDate: "",
-          customerName: "",
-          customerAddress: "",
-          items: [{ description: "", amount: "" }],
-        });
-      }
-    };
+    if (isEditing) {
+      await GeneratePDFFromInvoice(company!, formData.invoiceNo, pdfBase64);
+      alert("Invoice updated and PDF saved successfully!");
+    } else {
+      await SaveInvoicePDF(company!, formData.invoiceNo, pdfBase64);
+      alert("Invoice created and PDF saved successfully!");
+    }
   };
 
   return (

@@ -103,23 +103,26 @@ func NewApp() *App {
 
 // initBaseDataDir sets up the base data directory based on the operating system
 func (a *App) initBaseDataDir() {
-	// Determine if running on macOS, Windows, or Linux
-	if runtime.GOOS == "darwin" {
-		// For macOS, find the application bundle directory
-		// Get the path to the current executable
+	switch runtime.GOOS {
+	case "darwin":
+		// macOS: store data inside the .app bundle's Resources folder
 		execPath, err := os.Executable()
 		if err == nil {
-			// Navigate up to the app bundle's Contents directory
-			// Typical structure: YourApp.app/Contents/MacOS/executable
 			bundlePath := filepath.Dir(filepath.Dir(filepath.Dir(execPath)))
-			// Create a data directory inside the app bundle
 			a.baseDataDir = filepath.Join(bundlePath, "Contents", "Resources", "data")
 		} else {
-			// Fallback if we can't get the executable path
 			a.baseDataDir = "data"
 		}
-	} else {
-		// For Windows and other platforms, continue using the existing "data" directory
+	case "windows":
+		// Windows: use %APPDATA%\invoicer\data so we always have write permission
+		// regardless of where the .exe is placed (e.g. Program Files, Desktop, etc.)
+		appData := os.Getenv("APPDATA")
+		if appData != "" {
+			a.baseDataDir = filepath.Join(appData, "invoicer", "data")
+		} else {
+			a.baseDataDir = "data"
+		}
+	default:
 		a.baseDataDir = "data"
 	}
 

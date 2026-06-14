@@ -1,0 +1,55 @@
+name: Build Wails App for Windows
+
+on:
+  push:
+    branches:
+      - main        # auto-triggers on every push to main branch
+  workflow_dispatch: # also allows manual trigger from GitHub Actions tab
+
+jobs:
+  build-windows:
+    runs-on: windows-latest  # uses a real Windows machine — no cross-compilation needed
+
+    steps:
+      # pulls the latest code from the repo into the runner
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # installs Go 1.22 and caches modules to speed up future runs
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      # installs Node 20 and caches npm packages using package-lock.json as the cache key
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # installs the Wails CLI tool globally via go install
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      # installs all frontend npm packages (React, Tailwind, etc.)
+      - name: Install Frontend Dependencies
+        run: npm install
+        working-directory: frontend
+
+      # builds the optimised Windows .exe
+      # -ldflags "-s -w" → strips debug symbols to reduce file size
+      # -trimpath        → removes local machine paths from the binary
+      # -o invoicer.exe  → sets the output filename
+      - name: Build Windows App
+        run: wails build -platform windows/amd64 -ldflags "-s -w" -trimpath -o invoicer.exe
+
+      # uploads the .exe as a downloadable artifact on GitHub (kept for 30 days)
+      - name: Upload Windows Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvoicerApp-windows
+          path: ./build/bin/invoicer.exe
+          retention-days: 30
